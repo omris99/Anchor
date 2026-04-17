@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Anchor</string>
+    <string name="welcome_user">Welcome, %s</string> <string name="daily_checkin_question">How are you feeling today?</string> <string name="sos_button">S.O.S</string> <string name="medication_taken">Taken</string> <string name="cancel">Cancel</string> </resources>
