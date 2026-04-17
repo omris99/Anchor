@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "AnchorDashboardApp",
+    "slug": "AnchorDashboardApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./ui/assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./ui/assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./ui/assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./ui/assets/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d121b456-d78b-41e0-bdd6-188587023bd8"
+      }
+    }
+  }
+}
