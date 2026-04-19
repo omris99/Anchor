@@ -1,50 +1,58 @@
-import { signIn, signOut, getCurrentUser } from "aws-amplify/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiRequest } from '../api/ApiClient';
 
-export async function loginUser(phone, password, rememberMe) {
+function parseJwtPayload(token) {
     try {
-        await getCurrentUser();
-        await signOut();
+        const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const json = decodeURIComponent(
+            atob(base64).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+        );
+        return JSON.parse(json);
     } catch {
-        // no active session
+        return {};
     }
+}
 
-    const normalizedPhone = phone.startsWith('+')
-        ? phone
-        : '+972' + phone.replace(/^0/, '');
-
-    const result = await signIn({
-        username: normalizedPhone,
-        password,
-        options: { authFlowType: "USER_PASSWORD_AUTH" },
+export async function loginUser(email, password, rememberMe) {
+    const data = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
     });
 
-    if (result.nextStep?.signInStep !== "DONE") {
-        throw new Error("תהליך ההתחברות לא הושלם");
-    }
+    const payload = parseJwtPayload(data.id_token);
+    const nameParts = (payload.name || '').split(' ');
+
+    const userData = {
+        email,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        userType: payload['custom:user_type'] || '',
+        idToken: data.id_token,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+    };
 
     if (rememberMe) {
-        await AsyncStorage.setItem("username", phone);
+        await AsyncStorage.setItem("email", email);
         await AsyncStorage.setItem("password", password);
     } else {
-        await AsyncStorage.removeItem("username");
+        await AsyncStorage.removeItem("email");
         await AsyncStorage.removeItem("password");
     }
 
-    return result;
+    return userData;
 }
 
 export async function loadSavedCredentials() {
-    const savedUsername = await AsyncStorage.getItem("username");
-    const savedPassword = await AsyncStorage.getItem("password");
-    if (savedUsername && savedPassword) {
-        return { phone: savedUsername, password: savedPassword };
+    const email = await AsyncStorage.getItem("email");
+    const password = await AsyncStorage.getItem("password");
+    if (email && password) {
+        return { email, password };
     }
     return null;
 }
 
 export async function logoutUser() {
-    await signOut();
-    await AsyncStorage.removeItem("username");
+    await AsyncStorage.removeItem("email");
     await AsyncStorage.removeItem("password");
 }

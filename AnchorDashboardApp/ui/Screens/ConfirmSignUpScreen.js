@@ -7,13 +7,13 @@ export default function ConfirmSignUpScreen({ route, navigation }) {
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const { phone } = route.params;
+    const { email } = route.params;
 
     const handleConfirm = async () => {
         try {
             setLoading(true);
 
-            await confirmRegistration(phone, code);
+            await confirmRegistration(email, code);
             Alert.alert(
                 "הצלחה",
                 "האימייל אומת בהצלחה. חשבונך ממתין לאישור המנהל."
@@ -30,8 +30,8 @@ export default function ConfirmSignUpScreen({ route, navigation }) {
 
     const handleResend = async () => {
         try {
-            await resendCode(phone);
-            Alert.alert("נשלח", "קוד חדש נשלח ב-SMS");
+            await resendCode(email);
+            Alert.alert("נשלח", "קוד חדש נשלח לאימייל שלך");
         } catch (error) {
             console.error(error);
             Alert.alert("שגיאה", error.message || "שליחה מחדש נכשלה");
@@ -42,7 +42,7 @@ export default function ConfirmSignUpScreen({ route, navigation }) {
         <View style={styles.container}>
             <Text style={styles.title}>אימות חשבון</Text>
             <Text style={styles.subtitle}>
-                הזן את קוד האימות שנשלח ב-SMS אל{'\n'}{phone}
+                הזן את קוד האימות שנשלח לאימייל{'\n'}{email}
             </Text>
 
             <TextInput

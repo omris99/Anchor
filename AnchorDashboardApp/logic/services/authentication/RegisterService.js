@@ -1,7 +1,7 @@
 import { apiRequest } from '../api/ApiClient';
 
 export async function registerUser({ email, password, firstName, lastName, phone, userType }) {
-    if (!phone || !password || !firstName || !lastName || !userType) {
+    if (!phone || !password || !firstName || !lastName || !userType || !email) {
         throw new Error("יש למלא את כל השדות");
     }
 
@@ -15,8 +15,8 @@ export async function registerUser({ email, password, firstName, lastName, phone
             phone_number: normalizedPhone,
             password,
             name: `${firstName} ${lastName}`,
+            email,
             user_type: userType,
-            ...(email ? { email } : {}),
         }),
     });
 

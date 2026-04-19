@@ -6,7 +6,7 @@
 - **AnchorWatchApp/** — אפליקציית Wear OS (Kotlin), כבר קיימת.  
   רצה על שעון הקשיש. אחראית על: הצגת שעון, check-in יומי, תזכורות תרופות, כפתור SOS, זיהוי נפילות, שידור נתוני בריאות לbackend.
 
-- **Dashboard App** — אפליקציה cross-platform לנייד (React Native), **טרם נבנתה**.  
+- **Dashboard App** — אפליקציה cross-platform לנייד (React Native), **בפיתוח**.  
   מיועדת לבני משפחה ומטפלים. תאפשר: מעקב אחרי מצב הקשיש בזמן אמת, צפייה בדוחות יומיים ונתוני בריאות, הגדרת תרופות ותזכורות, ניהול קישורים (קישור שעון + קישור בני משפחה), קבלת התראות חירום.  
   פועלת על Android 14+ ו-iOS 18+.
 
@@ -20,9 +20,11 @@
 
 ## מה כבר בנוי
 - DynamoDB: 6 טבלאות (ראה `anchor-backend/scripts/create-tables.sh`)
-- Cognito User Pool: `us-east-1_aaM14od4X`, Client: `6fuplbkqkeos4d2oojtr0vo91v`
+- Cognito User Pool: `us-east-1_KXDRK5VnC`, Client: `1smq0heh9hmht2tti3rnb4usvi`
+  - username: **email** (לא phone), MFA כבוי, אימות דרך אימייל
 - API Gateway: `https://u7cxnohim6.execute-api.us-east-1.amazonaws.com` (`api-config.json`)
-- Lambda auth endpoints: register, login, confirm, verify-mfa
+- Lambda auth endpoints: register ✅, login ✅, confirm ✅, verify-mfa ✅
+- Dashboard App: מסכי auth (register, confirm, login) — עובדים. חסר HomeScreen
 
 ## כללי עבודה
 - **ללא CDK** — רק CLI scripts. כל תשתית מוקמת דרך `anchor-backend/scripts/`

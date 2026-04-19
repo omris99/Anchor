@@ -12,8 +12,8 @@ exports.handler = async (event) => {
 
   const { phone_number, password, name, email, user_type } = body;
 
-  if (!phone_number || !password || !name || !user_type) {
-    return { statusCode: 400, body: JSON.stringify({ error: "Missing required fields: phone_number, password, name, user_type" }) };
+  if (!email || !password || !name || !user_type) {
+    return { statusCode: 400, body: JSON.stringify({ error: "Missing required fields: email, password, name, user_type" }) };
   }
 
   if (!["elderly", "family_member"].includes(user_type)) {
@@ -21,16 +21,16 @@ exports.handler = async (event) => {
   }
 
   const userAttributes = [
-    { Name: "phone_number", Value: phone_number },
     { Name: "name", Value: name },
+    { Name: "email", Value: email },
     { Name: "custom:user_type", Value: user_type },
   ];
-  if (email) userAttributes.push({ Name: "email", Value: email });
+  if (phone_number) userAttributes.push({ Name: "phone_number", Value: phone_number });
 
   try {
     const result = await client.send(new SignUpCommand({
       ClientId: process.env.COGNITO_CLIENT_ID,
-      Username: phone_number,
+      Username: email,
       Password: password,
       UserAttributes: userAttributes,
     }));
@@ -39,7 +39,7 @@ exports.handler = async (event) => {
       statusCode: 201,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: "User registered. Please verify your phone number with the code sent via SMS.",
+        message: "User registered. Please verify your email address with the code sent to your inbox.",
         user_sub: result.UserSub,
         confirmed: result.UserConfirmed,
       }),

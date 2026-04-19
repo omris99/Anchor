@@ -1,16 +1,18 @@
-import { resendSignUpCode } from "aws-amplify/auth";
 import { apiRequest } from '../api/ApiClient';
 
-export async function confirmRegistration(phone_number, code) {
+export async function confirmRegistration(email, code) {
     return await apiRequest('/auth/confirm', {
         method: 'POST',
         body: JSON.stringify({
-            phone_number,
+            email,
             confirmation_code: code,
         }),
     });
 }
 
-export async function resendCode(phone_number) {
-    return await resendSignUpCode({ username: phone_number });
+export async function resendCode(email) {
+    return await apiRequest('/auth/resend-code', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    });
 }

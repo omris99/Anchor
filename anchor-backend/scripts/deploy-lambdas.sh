@@ -4,7 +4,7 @@ set -e
 PROFILE="anchor"
 REGION="us-east-1"
 ACCOUNT_ID="976586160011"
-COGNITO_CLIENT_ID="6fuplbkqkeos4d2oojtr0vo91v"
+COGNITO_CLIENT_ID="1smq0heh9hmht2tti3rnb4usvi"
 ROLE_NAME="LabRole"
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 
