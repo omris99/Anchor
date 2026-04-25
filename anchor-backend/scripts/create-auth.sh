@@ -9,14 +9,7 @@ echo "Setting up Cognito authentication..."
 # ─── 1. IAM Role ─────────────────────────────────────────────────────────────
 # משתמשים ב-LabRole הקיים (AWS Academy לא מאפשר יצירת roles חדשים)
 
-echo "Using existing LabRole for SMS..."
-
-SMS_ROLE_ARN=$(aws iam get-role \
-  --role-name LabRole \
-  --profile $PROFILE \
-  --query 'Role.Arn' --output text)
-
-echo "SMS Role ARN: $SMS_ROLE_ARN"
+echo "Creating User Pool (email verification, no SMS)..."
 
 # ─── 2. User Pool ─────────────────────────────────────────────────────────────
 
@@ -33,15 +26,11 @@ USER_POOL_ID=$(aws cognito-idp create-user-pool \
       "RequireSymbols": false
     }
   }' \
-  --mfa-configuration ON \
-  --sms-configuration '{
-    "SnsCallerArn": "'"$SMS_ROLE_ARN"'",
-    "ExternalId": "AnchorCognitoSMS"
-  }' \
-  --auto-verified-attributes phone_number email \
-  --username-attributes phone_number \
+  --mfa-configuration OFF \
+  --auto-verified-attributes email \
+  --username-attributes email \
   --schema \
-    Name=phone_number,Required=true,Mutable=true \
+    Name=phone_number,Required=false,Mutable=true \
     Name=email,Required=true,Mutable=true \
     Name=name,Required=true,Mutable=true \
     'Name=user_type,AttributeDataType=String,Mutable=false,DeveloperOnlyAttribute=false,StringAttributeConstraints={MinLength=1,MaxLength=20}' \
@@ -53,23 +42,7 @@ USER_POOL_ID=$(aws cognito-idp create-user-pool \
 
 echo "User Pool ID: $USER_POOL_ID"
 
-# ─── 3. הגדרת הודעת SMS ───────────────────────────────────────────────────────
-
-echo "Configuring SMS MFA message..."
-
-aws cognito-idp set-user-pool-mfa-config \
-  --user-pool-id $USER_POOL_ID \
-  --sms-mfa-configuration '{
-    "SmsAuthenticationMessage": "Your Anchor verification code is {####}",
-    "SmsConfiguration": {
-      "SnsCallerArn": "'"$SMS_ROLE_ARN"'",
-      "ExternalId": "AnchorCognitoSMS"
-    }
-  }' \
-  --mfa-configuration ON \
-  --profile $PROFILE --region $REGION --output text > /dev/null
-
-# ─── 4. User Pool Client ──────────────────────────────────────────────────────
+# ─── 3. User Pool Client ──────────────────────────────────────────────────────
 
 echo "Creating User Pool Client..."
 

@@ -90,9 +90,11 @@ export default function WelcomeScreen({ navigation }) {
                     <View style={styles.form}>
                         <Text style={styles.label}>התחברות לאיזור האישי :</Text>
                         <TextInputField
-                            placeholder="מספר פלאפון"
+                            placeholder="אי-מייל"
                             value={username}
                             onChangeText={setUsername}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
                         />
                         <TextInputField
                             placeholder="סיסמה"

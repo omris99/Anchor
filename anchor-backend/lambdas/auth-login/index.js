@@ -10,10 +10,10 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON body" }) };
   }
 
-  const { phone_number, password } = body;
+  const { email, password } = body;
 
-  if (!phone_number || !password) {
-    return { statusCode: 400, body: JSON.stringify({ error: "Missing required fields: phone_number, password" }) };
+  if (!email || !password) {
+    return { statusCode: 400, body: JSON.stringify({ error: "Missing required fields: email, password" }) };
   }
 
   try {
@@ -21,25 +21,11 @@ exports.handler = async (event) => {
       AuthFlow: "USER_PASSWORD_AUTH",
       ClientId: process.env.COGNITO_CLIENT_ID,
       AuthParameters: {
-        USERNAME: phone_number,
+        USERNAME: email,
         PASSWORD: password,
       },
     }));
 
-    // MFA challenge — user must verify with SMS code
-    if (result.ChallengeName === "SMS_MFA") {
-      return {
-        statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          challenge: "SMS_MFA",
-          session: result.Session,
-          message: "SMS code sent. Use POST /auth/verify-mfa to complete login.",
-        }),
-      };
-    }
-
-    // Tokens returned directly (no MFA)
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },

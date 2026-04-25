@@ -8,6 +8,8 @@ import { awsAuthConfig } from "./config/awsAuthConfig";
 import WelcomeScreen from './ui/Screens/WelcomeScreen';
 import RegisterScreen from './ui/Screens/RegisterScreen';
 import ConfirmSignUpScreen from "./ui/Screens/ConfirmSignUpScreen";
+import HomeScreen from "./ui/Screens/HomeScreen";
+import MedicationRemindersScreen from "./ui/Screens/MedicationRemindersScreen";
 
 Amplify.configure(awsAuthConfig);
 
@@ -35,6 +37,16 @@ export default function App() {
                             name="ConfirmSignUp"
                             component={ConfirmSignUpScreen}
                             options={{ title: 'אימות הרשמה' }}
+                        />
+                        <Stack.Screen
+                            name="main-tabs"
+                            component={HomeScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="medication-reminders"
+                            component={MedicationRemindersScreen}
+                            options={{ title: 'תזכורות לתרופות', headerBackTitle: 'חזרה' }}
                         />
                     </Stack.Navigator>
                 </NavigationContainer>
