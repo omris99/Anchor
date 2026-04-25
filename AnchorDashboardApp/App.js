@@ -9,6 +9,7 @@ import WelcomeScreen from './ui/Screens/WelcomeScreen';
 import RegisterScreen from './ui/Screens/RegisterScreen';
 import ConfirmSignUpScreen from "./ui/Screens/ConfirmSignUpScreen";
 import HomeScreen from "./ui/Screens/HomeScreen";
+import MedicationRemindersScreen from "./ui/Screens/MedicationRemindersScreen";
 
 Amplify.configure(awsAuthConfig);
 
@@ -40,8 +41,12 @@ export default function App() {
                         <Stack.Screen
                             name="main-tabs"
                             component={HomeScreen}
-                            options={{ headerShown: false}}
-
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="medication-reminders"
+                            component={MedicationRemindersScreen}
+                            options={{ title: 'תזכורות לתרופות', headerBackTitle: 'חזרה' }}
                         />
                     </Stack.Navigator>
                 </NavigationContainer>

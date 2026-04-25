@@ -24,7 +24,10 @@
   - username: **email** (לא phone), MFA כבוי, אימות דרך אימייל
 - API Gateway: `https://u7cxnohim6.execute-api.us-east-1.amazonaws.com` (`api-config.json`)
 - Lambda auth endpoints: register ✅, login ✅, confirm ✅, verify-mfa ✅
-- Dashboard App: מסכי auth (register, confirm, login) — עובדים. חסר HomeScreen
+- Dashboard App:
+  - מסכי auth (register, confirm, login) ✅
+  - HomeScreen ✅ — ניווט ל-5 מסכים ראשיים
+  - MedicationRemindersScreen ✅ — UI מלא (שם תרופה, שעה, ימים, רשימה), ממתין לחיבור backend (`/medication-reminders`)
 
 ## כללי עבודה
 - **ללא CDK** — רק CLI scripts. כל תשתית מוקמת דרך `anchor-backend/scripts/`

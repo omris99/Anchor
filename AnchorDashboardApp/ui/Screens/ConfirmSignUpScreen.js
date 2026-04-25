@@ -16,7 +16,7 @@ export default function ConfirmSignUpScreen({ route, navigation }) {
             await confirmRegistration(email, code);
             Alert.alert(
                 "הצלחה",
-                "האימייל אומת בהצלחה. חשבונך ממתין לאישור המנהל."
+                "האימייל אומת בהצלחה."
             );
 
             navigation.navigate("welcome");
