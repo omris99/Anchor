@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App identity (TARGET originals preserved; English used as fallback only —
+         see values-iw/strings.xml for the Hebrew default that ships with the
+         APK per resourceConfigurations += "he" in app/build.gradle.kts). -->
+    <string name="app_name">Anchor</string>
+
+    <!-- TARGET originals (preserved verbatim) -->
+    <string name="welcome_user">Welcome, %s</string>
+    <string name="daily_checkin_question">How are you feeling today?</string>
+    <string name="sos_button">S.O.S</string>
+    <string name="medication_taken">Taken</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- SOURCE additions (English fallbacks; primary strings live in values-iw/) -->
+    <string name="btn_sos">SOS</string>
+    <string name="btn_menu">Menu</string>
+    <string name="cd_clock">Current time</string>
+    <string name="cd_date">Current date</string>
+    <string name="cd_sos">Emergency button</string>
+    <string name="cd_menu">Open menu</string>
+
+    <string name="sos_title">S.O.S</string>
+    <string name="sos_countdown_template">Sending in %1$d seconds…</string>
+    <string name="sos_cancel">Cancel</string>
+    <string name="sos_dispatching">Dispatching emergency alert</string>
+    <string name="sos_sent">Alert sent</string>
+    <string name="sos_queued">Will send when online</string>
+    <string name="sos_initializing">Initializing…</string>
+    <string name="sos_notification_title">Emergency alert active</string>
+    <string name="sos_notification_text">Countdown in progress</string>
+    <string name="cd_sos_cancel">Cancel emergency alert</string>
+
+    <string name="checkin_question">How are you feeling today?</string>
+    <string name="checkin_time_left_template">Time left: %1$d:%2$02d</string>
+    <string name="cd_checkin_sad">I feel sad</string>
+    <string name="cd_checkin_neutral">I feel okay</string>
+    <string name="cd_checkin_happy">I feel good</string>
+
+    <string name="medication_loading">Loading…</string>
+    <string name="cd_medication_taken">Confirm medication taken</string>
+    <string name="medication_notification_title">Medication reminder</string>
+    <string name="medication_notification_text">Countdown in progress</string>
+    <string name="time_left_template">Time left: %1$d:%2$02d</string>
+
+    <string name="fall_detected_title">Fall detected!</string>
+    <string name="fall_countdown_template">Sending alert in %1$d seconds</string>
+    <string name="fall_im_ok">OK</string>
+    <string name="fall_cancelled">Marked as false alarm</string>
+    <string name="fall_alert_sent">Alert sent</string>
+    <string name="fall_notification_title">Fall monitoring active</string>
+    <string name="fall_notification_text">Fall detection running in background</string>
+    <string name="cd_fall_cancel">Cancel</string>
+</resources>

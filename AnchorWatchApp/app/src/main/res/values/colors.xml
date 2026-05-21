@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Anchor palette — derived from SOURCE watchapp/res/values/colors.xml.
+         Used by SOURCE screens via colorResource(R.color.*). -->
+    <color name="primary">#1565C0</color>
+    <color name="background">#000000</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="sos">#D32F2F</color>
+    <color name="confirm">#388E3C</color>
+    <color name="cancel">#D32F2F</color>
+</resources>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- TARGET originals (preserved) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- SOURCE additions: foreground services + alarms + boot re-arm -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SHORT_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Anchor">
+        <uses-library
+            android:name="com.google.android.wearable"
+            android:required="true" />
+        <uses-library
+            android:name="wear-sdk"
+            android:required="false" />
+
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <!-- Launcher: partner's MainActivity (preserved at com.anchor.anchorwatchapp.presentation) -->
+        <activity
+            android:name="com.anchor.anchorwatchapp.presentation.MainActivity"
+            android:exported="true"
+            android:configChanges="locale|layoutDirection"
+            android:theme="@style/Theme.Anchor">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- SOURCE lockscreen activities (com.anchor.watch.*) -->
+        <activity
+            android:name="com.anchor.watch.CheckInActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Anchor"
+            android:turnScreenOn="true" />
+
+        <activity
+            android:name="com.anchor.watch.MedicationActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Anchor"
+            android:turnScreenOn="true" />
+
+        <activity
+            android:name="com.anchor.watch.FallAlertActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Anchor"
+            android:turnScreenOn="true" />
+
+        <!-- SOURCE foreground services -->
+        <service
+            android:name="com.anchor.watch.services.EmergencyService"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
+
+        <service
+            android:name="com.anchor.watch.services.MedicationAlarmService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="medication_reminder" />
+        </service>
+
+        <service
+            android:name="com.anchor.watch.services.FallDetectionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="fall_detection" />
+        </service>
+
+        <!-- SOURCE receivers (BOOT_COMPLETED re-arm + alarm fanout) -->
+        <receiver
+            android:name="com.anchor.watch.receivers.SosReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.anchor.watch.receivers.CheckInAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name="com.anchor.watch.receivers.MedicationAlarmReceiver"
+            android:exported="false" />
+
+    </application>
+
+</manifest>
