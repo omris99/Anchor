@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 
 sealed class EmergencyState {
@@ -94,7 +95,11 @@ class EmergencyOrchestrator(
             isSynced = false,
         )
         store.save(event)
-        val ok = runCatching { api.submit(event) }.getOrDefault(false)
+        // 15s budget: matches OkHttp read timeout and stays well under the
+        // SHORT_SERVICE 3-minute FGS cap so the OS can't hard-kill us mid-dispatch.
+        val ok = withTimeoutOrNull(DISPATCH_TIMEOUT_MS) {
+            runCatching { api.submit(event) }.getOrDefault(false)
+        } ?: false
         if (ok) {
             store.markSynced(event.id)
             _state.value = EmergencyState.Sent(online = true)
@@ -102,6 +107,10 @@ class EmergencyOrchestrator(
             onQueueForRetry()
             _state.value = EmergencyState.Sent(online = false)
         }
+    }
+
+    companion object {
+        private const val DISPATCH_TIMEOUT_MS = 15_000L
     }
 }
 
@@ -221,6 +230,9 @@ class EmergencyService : Service() {
 
     override fun onDestroy() {
         scope.cancel()
+        // Reset static singleton so the next SOS launch doesn't briefly render
+        // the previous run's terminal Sent(online=false) before its countdown starts.
+        liveState.value = EmergencyState.Idle
         super.onDestroy()
     }
 

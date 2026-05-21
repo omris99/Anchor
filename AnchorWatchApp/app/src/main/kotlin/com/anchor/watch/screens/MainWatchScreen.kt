@@ -40,9 +40,10 @@ import java.util.Date
 import java.util.Locale
 
 internal object MainWatchFormatters {
-    private val hebrew = Locale("he")
-    fun time(date: Date): String = SimpleDateFormat("HH:mm", hebrew).format(date)
-    fun date(date: Date): String = SimpleDateFormat("dd/MM/yyyy", hebrew).format(date)
+    fun time(date: Date, locale: Locale = Locale.getDefault()): String =
+        SimpleDateFormat("HH:mm", locale).format(date)
+    fun date(date: Date, locale: Locale = Locale.getDefault()): String =
+        SimpleDateFormat("dd/MM/yyyy", locale).format(date)
 }
 
 internal object MainWatchSizing {

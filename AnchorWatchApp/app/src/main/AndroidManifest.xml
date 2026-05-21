@@ -18,12 +18,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <uses-feature android:name="android.hardware.type.watch" />
 
     <application
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
@@ -61,6 +62,7 @@
         <activity
             android:name="com.anchor.watch.CheckInActivity"
             android:exported="false"
+            android:configChanges="locale|layoutDirection"
             android:launchMode="singleInstance"
             android:showOnLockScreen="true"
             android:taskAffinity=""
@@ -70,6 +72,7 @@
         <activity
             android:name="com.anchor.watch.MedicationActivity"
             android:exported="false"
+            android:configChanges="locale|layoutDirection"
             android:launchMode="singleInstance"
             android:showOnLockScreen="true"
             android:taskAffinity=""
@@ -79,6 +82,7 @@
         <activity
             android:name="com.anchor.watch.FallAlertActivity"
             android:exported="false"
+            android:configChanges="locale|layoutDirection"
             android:launchMode="singleInstance"
             android:showOnLockScreen="true"
             android:taskAffinity=""

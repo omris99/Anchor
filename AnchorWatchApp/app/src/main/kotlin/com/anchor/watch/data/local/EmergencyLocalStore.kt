@@ -52,7 +52,15 @@ abstract class AnchorDatabase : RoomDatabase() {
                     context.applicationContext,
                     AnchorDatabase::class.java,
                     "anchor-watch.db",
-                ).build().also { instance = it }
+                )
+                    // MVP policy: if the schema bumps, discard the local cache.
+                    // Safe because every store has a server-side source of truth
+                    // (unsynced rows are re-queued via the sync workers on next start).
+                    // dropAllTables=false: only drop Room-managed tables; we have no
+                    // non-Room tables in this database, so the choice is functionally
+                    // equivalent to true but lets Room defend against accidents.
+                    .fallbackToDestructiveMigration(dropAllTables = false)
+                    .build().also { instance = it }
             }
     }
 }

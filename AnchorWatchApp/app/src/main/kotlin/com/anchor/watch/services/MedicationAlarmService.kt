@@ -184,6 +184,10 @@ class MedicationAlarmService : Service() {
 
     override fun onDestroy() {
         scope.cancel()
+        // Reset static singletons so a stale Phase.Expired from a previous alarm
+        // doesn't cause the next MedicationReminderScreen to auto-finish on open.
+        livePhase.value = TimeoutManager.Phase.Idle
+        liveMedicationId.value = null
         super.onDestroy()
     }
 

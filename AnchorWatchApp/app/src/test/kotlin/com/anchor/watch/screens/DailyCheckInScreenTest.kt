@@ -24,17 +24,20 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(
-    sdk = [33],
+    // SDK 34 matches the app's minSdk=34 so the framework parser doesn't reject
+    // the merged manifest with PackageParserException("Requires newer sdk version #34").
+    // (`manifest = Config.NONE` does NOT bypass that check while
+    // testOptions.unitTests.isIncludeAndroidResources=true — the parser still
+    // reads <uses-sdk> through the resource loader path.)
+    sdk = [34],
     // Hebrew + Israel + RTL — forces values-iw/ resources to win and
     // LocalLayoutDirection to default to Rtl regardless of host JVM locale.
-    qualifiers = "he-rIL-ldrtl",
-    // Skip merged-manifest parsing. AGP 9 injects tags that Robolectric's
-    // ShadowPackageParser (4.14.1) cannot parse — caused PackageParserException
-    // at PackageParser.java:1230 on every test in this class. The Compose-rule
-    // tests below host the screen directly under ComponentActivity and do not
-    // depend on any <activity> / <service> entries from the manifest.
+    // Use the legacy "iw" code (not modern "he"): Robolectric's resource resolver
+    // doesn't apply the he→iw alias that runtime Android does, so the qualifier
+    // must match the actual folder name (values-iw/).
+    qualifiers = "iw-rIL-ldrtl",
+    // Skip activity/service entry parsing — Compose tests don't need those.
     manifest = Config.NONE,
-    // Default Application instance (the app declares no custom Application).
     application = android.app.Application::class,
 )
 class DailyCheckInScreenTest {
