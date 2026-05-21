@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew.bat :app:testDebugUnitTest --console=plain)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :app:testDebugUnitTest --console=plain)",
+      "Bash(tail -40 \"/c/Users/hershkod/AppData/Local/Temp/claude/C--Users-hershkod-StudioProjects-Anchor-AnchorWatchApp-app-src-main/b92d003c-7fc1-45b5-ba7f-9c909b06e33a/tasks/bg414sghc.output\")",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :app:testDebugUnitTest --tests \"com.anchor.watch.screens.*\" --console=plain)",
+      "Bash(mkdir -p /c/Users/hershkod/StudioProjects/Anchor/AnchorWatchApp/app/src/test/resources && echo \"created\")"
+    ]
+  }
+}
