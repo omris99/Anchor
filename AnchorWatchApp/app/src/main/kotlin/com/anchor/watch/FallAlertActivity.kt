@@ -9,7 +9,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import com.anchor.watch.screens.FallAlertScreen
 import com.anchor.watch.services.EmergencyService
 import com.anchor.watch.services.FallDetectionService
@@ -48,8 +47,9 @@ class FallAlertActivity : ComponentActivity() {
             },
         )
 
+        val layoutDirection = LocaleHelper.layoutDirection(this)
         setContent {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 FallAlertScreen(
                     controller = controller,
                     onFinished = {

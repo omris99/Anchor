@@ -8,13 +8,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.media.AudioAttributes
-import android.media.RingtoneManager
 import android.os.Build
 import android.os.IBinder
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.anchor.watch.MedicationActivity
@@ -83,9 +78,9 @@ class MedicationAlarmService : Service() {
             repository = repository,
             onScheduleRepeat = { id -> scheduleRepeat(applicationContext, id) },
             onCancelRepeat = { id -> cancel(applicationContext, id) },
+            // Medication reminders are strictly visual: re-launch the activity so the
+            // screen wakes (showOnLockScreen + turnScreenOn) without any audio or haptics.
             onAlert = {
-                vibrate()
-                playAlertSound()
                 liveMedicationId.value?.let { launchActivity(it) }
             },
             timeoutManager = TimeoutManager(
@@ -108,7 +103,8 @@ class MedicationAlarmService : Service() {
                 }
                 liveMedicationId.value = id
                 startForegroundCompat()
-                vibrate()
+                // Visual-only reminder: wake the screen by launching the activity, no
+                // vibrate / no ringtone (per Mission 3 — audio is reserved for SOS).
                 launchActivity(id)
                 orchestrator.start(scope, id)
             }
@@ -145,8 +141,9 @@ class MedicationAlarmService : Service() {
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(getString(R.string.medication_notification_title))
             .setContentText(getString(R.string.medication_notification_text))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -165,34 +162,14 @@ class MedicationAlarmService : Service() {
         val ch = NotificationChannel(
             CHANNEL_ID,
             getString(R.string.medication_notification_title),
-            NotificationManager.IMPORTANCE_HIGH,
+            NotificationManager.IMPORTANCE_LOW,
         ).apply {
             description = getString(R.string.medication_notification_text)
             setSound(null, null)
+            enableVibration(false)
+            enableLights(false)
         }
         nm.createNotificationChannel(ch)
-    }
-
-    private fun vibrate() {
-        val pattern = longArrayOf(0, 250, 150, 250)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vm = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vm.defaultVibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
-        } else {
-            @Suppress("DEPRECATION")
-            (getSystemService(VIBRATOR_SERVICE) as Vibrator)
-                .vibrate(VibrationEffect.createWaveform(pattern, -1))
-        }
-    }
-
-    private fun playAlertSound() {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION) ?: return
-        val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
-        ringtone.audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        ringtone.play()
     }
 
     private fun stopSelfSafe() {
