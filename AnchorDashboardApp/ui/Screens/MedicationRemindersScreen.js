@@ -30,7 +30,7 @@ function formatDays(selectedDays) {
 
 let nextReminderId = 1;
 
-export default function MedicationRemindersScreen() {
+export default function MedicationRemindersScreen({ navigation }) {
     const [medicationName, setMedicationName] = useState('');
     const [selectedTime, setSelectedTime] = useState(() => {
         const now = new Date();
@@ -110,10 +110,17 @@ export default function MedicationRemindersScreen() {
             style={styles.background}
         >
             <SafeAreaView style={styles.container} edges={['top']}>
-                <Image
-                    source={require('../assets/anchor-logo-wide.png')}
-                    style={styles.logo}
-                />
+                <View style={styles.header}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+                        <Text style={styles.backArrow}>←</Text>
+                    </TouchableOpacity>
+                    <Image
+                        source={require('../assets/anchor-logo-wide.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                    <View style={styles.headerSpacer} />
+                </View>
                 <Text style={styles.title}>תזכורות לתרופות</Text>
 
                 <FlatList
@@ -208,13 +215,31 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         paddingHorizontal: 20,
     },
-    logo: {
-        width: '80%',
-        height: 70,
-        alignSelf: 'center',
-        marginTop: 20,
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 16,
         marginBottom: 12,
-        resizeMode: 'contain'
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#48AEBE',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    backArrow: {
+        fontSize: 20,
+        color: '#fff',
+        fontWeight: '700',
+    },
+    headerSpacer: {
+        width: 40,
+    },
+    logo: {
+        flex: 1,
+        height: 50,
     },
     title: {
         fontSize: 26,

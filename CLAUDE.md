@@ -28,6 +28,8 @@
   - מסכי auth (register, confirm, login) ✅
   - HomeScreen ✅ — ניווט ל-5 מסכים ראשיים
   - MedicationRemindersScreen ✅ — UI מלא (שם תרופה, שעה, ימים, רשימה), ממתין לחיבור backend (`/medication-reminders`)
+  - HealthDataScreen ✅ — גרף חודשי, ניטור אחרון, מדדים חריגים, ייצוא PDF (stub)
+  - DailyReportsScreen ✅ — דיווח יומי + היסטוריה, ממתין לחיבור backend (`/users/{id}/reports`)
 
 ## כללי עבודה
 - **ללא CDK** — רק CLI scripts. כל תשתית מוקמת דרך `anchor-backend/scripts/`
