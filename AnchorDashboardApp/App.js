@@ -15,6 +15,8 @@ import DailyReportsScreen from "./ui/Screens/DailyReportsScreen";
 import EmergencyHistoryScreen from "./ui/Screens/EmergencyHistoryScreen";
 import EmergencyEventScreen from "./ui/Screens/EmergencyEventScreen";
 import PreferencesScreen from "./ui/Screens/PreferencesScreen";
+import LinkManagementScreen from "./ui/Screens/LinkManagementScreen";
+import WatchPairingScreen from "./ui/Screens/WatchPairingScreen";
 
 Amplify.configure(awsAuthConfig);
 
@@ -76,6 +78,16 @@ export default function App() {
                         <Stack.Screen
                             name="preferences"
                             component={PreferencesScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="connections"
+                            component={LinkManagementScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="watch-pairing"
+                            component={WatchPairingScreen}
                             options={{ headerShown: false }}
                         />
                     </Stack.Navigator>

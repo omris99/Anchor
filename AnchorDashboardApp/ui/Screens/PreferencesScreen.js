@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
     Alert,
     FlatList,
@@ -14,6 +14,9 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { signOut } from 'aws-amplify/auth';
+import { UserContext } from '../../App';
+import { logoutUser } from '../../logic/services/authentication/LoginService';
 import TextInputField from '../components/TextInputField';
 import ClassicButton from '../components/ClassicButton';
 
@@ -47,6 +50,7 @@ function ToggleRow({ label, value, onValueChange }) {
 }
 
 export default function PreferencesScreen({ navigation }) {
+    const { setUser } = useContext(UserContext);
     const [dailyReportsEnabled, setDailyReportsEnabled] = useState(true);
     const [morningTrackingEnabled, setMorningTrackingEnabled] = useState(true);
     const [healthMonitoringEnabled, setHealthMonitoringEnabled] = useState(true);
@@ -211,6 +215,29 @@ export default function PreferencesScreen({ navigation }) {
                             </View>
                         )}
                     </View>
+
+                    {/* Logout */}
+                    <ClassicButton
+                        buttonStyle={styles.logoutButton}
+                        textStyle={styles.logoutText}
+                        onPress={() =>
+                            Alert.alert('התנתקות', 'האם אתה בטוח שברצונך להתנתק?', [
+                                { text: 'ביטול', style: 'cancel' },
+                                {
+                                    text: 'התנתק',
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        await logoutUser();
+                                        await signOut();
+                                        setUser(null);
+                                        navigation.reset({ index: 0, routes: [{ name: 'welcome' }] });
+                                    },
+                                },
+                            ])
+                        }
+                    >
+                        התנתקות
+                    </ClassicButton>
                 </ScrollView>
             </SafeAreaView>
 
@@ -348,6 +375,14 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 40,
+    },
+    logoutButton: {
+        backgroundColor: '#E53935',
+        borderColor: '#b71c1c',
+        marginBottom: 20,
+    },
+    logoutText: {
+        color: '#fff',
     },
     section: {
         backgroundColor: 'rgba(255,255,255,0.88)',

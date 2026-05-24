@@ -30,6 +30,9 @@
   - MedicationRemindersScreen ✅ — UI מלא (שם תרופה, שעה, ימים, רשימה), ממתין לחיבור backend (`/medication-reminders`)
   - HealthDataScreen ✅ — גרף חודשי, ניטור אחרון, מדדים חריגים, ייצוא PDF (stub)
   - DailyReportsScreen ✅ — דיווח יומי + היסטוריה, ממתין לחיבור backend (`/users/{id}/reports`)
+  - PreferencesScreen ✅ — toggles, תזכורות מים וארוחות, כפתור התנתקות אדום (logoutUser + Amplify signOut + setUser(null))
+  - LinkManagementScreen ✅ — route `connections`, תוכן לפי `user.userType`: קשיש רואה קישור שעון + אישור בקשות; בן משפחה רואה שליחת בקשה לפי טלפון
+  - WatchPairingScreen ✅ — route `watch-pairing`, סורק QR אמיתי (expo-camera), נגיש לקשיש בלבד. ממתין לחיבור backend (`/watch/pair`)
 
 ## כללי עבודה
 - **ללא CDK** — רק CLI scripts. כל תשתית מוקמת דרך `anchor-backend/scripts/`

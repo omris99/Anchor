@@ -50,7 +50,7 @@ export default function HomeScreen({ navigation }) {
                     buttonStyle={styles.mainButton}
                     onPress={() => navigation.navigate('connections')}
                 >
-                    ניהול קישורים לשעון
+                    ניהול קישורים
                 </ClassicButton>
 
                 <ClassicButton
