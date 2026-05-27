@@ -8,6 +8,13 @@
  *  pass/fail test — every method always "passes" (the assertion is trivial).
  *  The value is the on-screen rendering.
  *
+ *  Demo order (enforced by @FixMethodOrder + screenN_ prefix):
+ *      1. Main watch face   — the landing / "hero" screen
+ *      2. Daily check-in    — recurring wellness flow
+ *      3. Medication reminder
+ *      4. Fall-detected alert
+ *      5. SOS countdown     — the climactic emergency flow (last on purpose)
+ *
  *  How to run:
  *    1. Boot a Wear OS emulator (API 34 Large Round recommended).
  *    2. From the IDE terminal:
@@ -15,7 +22,7 @@
  *           -Pandroid.testInstrumentationRunnerArguments.class=`
  *           com.anchor.watch.exampletests.VisualScreenWalkthroughTest
  *    3. Watch the emulator window. Each test holds its screen for ~12 seconds.
- *    4. Total runtime: ~75 seconds.
+ *    4. Total runtime: ~75 seconds (5 screens × 12 s, plus per-test overhead).
  *
  *  Record video while watching (optional):
  *      adb shell screenrecord --time-limit 90 /sdcard/walkthrough.mp4
@@ -49,24 +56,45 @@ import com.anchor.watch.screens.SosScreen
 import com.anchor.watch.utils.FallAlertController
 import com.anchor.watch.utils.FallDetectionConstants
 import com.anchor.watch.utils.TimeoutManager
+import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.MethodSorters
 
 /** How long each screen stays visible on the emulator before the test moves on. */
 private const val DWELL_MS = 12_000L
 
+// NAME_ASCENDING + the screenN_ prefix is what actually guarantees demo order —
+// JUnit4's default ordering is deterministic but unspecified (often hash-based),
+// so without this the screens would shuffle on different JVMs / device images.
 @RunWith(AndroidJUnit4::class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class VisualScreenWalkthroughTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Screen 1: Daily check-in ("איך אתה מרגיש היום?" + 3 emoji buttons)
+    // Screen 1: Main watch face (Hebrew clock + SOS button)
     // ─────────────────────────────────────────────────────────────────────────
     @Test
-    fun screen1_dailyCheckIn_visibleFor12Seconds() {
+    fun screen1_mainWatchScreen_visibleFor12Seconds() {
+        composeRule.setContent {
+            MainWatchScreen(
+                isAmbient = false,
+                onSosClick = { /* no-op — observation only */ },
+            )
+        }
+        composeRule.waitForIdle()
+        Thread.sleep(DWELL_MS)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Screen 2: Daily check-in ("איך אתה מרגיש היום?" + 3 emoji buttons)
+    // ─────────────────────────────────────────────────────────────────────────
+    @Test
+    fun screen2_dailyCheckIn_visibleFor12Seconds() {
         composeRule.setContent {
             DailyCheckInScreen(
                 repository = CheckInRepository(
@@ -87,10 +115,10 @@ class VisualScreenWalkthroughTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Screen 2: Medication reminder ("נטלתי" button + medication name)
+    // Screen 3: Medication reminder ("נטלתי" button + medication name)
     // ─────────────────────────────────────────────────────────────────────────
     @Test
-    fun screen2_medicationReminder_visibleFor12Seconds() {
+    fun screen3_medicationReminder_visibleFor12Seconds() {
         val testMedication = MedicationEntity(
             id = "demo_med_001",
             name = "אספירין 100mg",          // shown large on the screen
@@ -115,14 +143,19 @@ class VisualScreenWalkthroughTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Screen 3: Main watch face (Hebrew clock + SOS button)
+    // Screen 4: Fall-detected alert (red, 30s "אני בסדר" grace period)
     // ─────────────────────────────────────────────────────────────────────────
     @Test
-    fun screen3_mainWatchScreen_visibleFor12Seconds() {
+    fun screen4_fallAlertScreen_visibleFor12Seconds() {
+        val controller = FallAlertController(
+            graceMs = FallDetectionConstants.GRACE_PERIOD_MS,
+            onTrigger = { /* no-op */ },
+            onCancel = { /* no-op */ },
+        )
         composeRule.setContent {
-            MainWatchScreen(
-                isAmbient = false,
-                onSosClick = { /* no-op — observation only */ },
+            FallAlertScreen(
+                controller = controller,
+                onFinished = { /* no-op */ },
             )
         }
         composeRule.waitForIdle()
@@ -130,7 +163,7 @@ class VisualScreenWalkthroughTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Screen 4: SOS countdown screen (red, "שולח בעוד N שניות")
+    // Screen 5: SOS countdown screen (red, "שולח בעוד N שניות")
     // ─────────────────────────────────────────────────────────────────────────
     //
     // SosScreen reads from EmergencyService.liveState (a global MutableStateFlow).
@@ -141,31 +174,11 @@ class VisualScreenWalkthroughTest {
     // dwell pure-visual without a real network call, the dwell is short enough
     // that the 10-second countdown is what you see (not the dispatch).
     @Test
-    fun screen4_sosScreen_visibleFor12Seconds() {
+    fun screen5_sosScreen_visibleFor12Seconds() {
         composeRule.setContent {
             SosScreen(
                 graceSeconds = 10,
                 onDismiss = { /* no-op */ },
-            )
-        }
-        composeRule.waitForIdle()
-        Thread.sleep(DWELL_MS)
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Screen 5: Fall-detected alert (red, 30s "אני בסדר" grace period)
-    // ─────────────────────────────────────────────────────────────────────────
-    @Test
-    fun screen5_fallAlertScreen_visibleFor12Seconds() {
-        val controller = FallAlertController(
-            graceMs = FallDetectionConstants.GRACE_PERIOD_MS,
-            onTrigger = { /* no-op */ },
-            onCancel = { /* no-op */ },
-        )
-        composeRule.setContent {
-            FallAlertScreen(
-                controller = controller,
-                onFinished = { /* no-op */ },
             )
         }
         composeRule.waitForIdle()
