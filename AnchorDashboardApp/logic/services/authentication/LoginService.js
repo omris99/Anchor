@@ -24,6 +24,7 @@ export async function loginUser(email, password, rememberMe) {
 
     const userData = {
         email,
+        userId: payload.sub || '',
         firstName: nameParts[0] || '',
         lastName: nameParts.slice(1).join(' ') || '',
         userType: payload['custom:user_type'] || '',
