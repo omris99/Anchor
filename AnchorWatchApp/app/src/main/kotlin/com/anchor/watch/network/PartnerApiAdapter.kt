@@ -273,6 +273,7 @@ internal class PartnerMedicationApi(
         userId = user_id ?: "me",
         isSynced = true,
         statusTimestamp = status_timestamp,
+        daysOfWeek = days_of_week ?: emptyList(),
     )
 }
 

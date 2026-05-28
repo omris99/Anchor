@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,9 +42,25 @@ fun SosScreen(
     val context = LocalContext.current
     val state by EmergencyService.liveState.collectAsState()
 
+    // Start a fresh countdown on entry. Guard only against a genuinely in-flight
+    // run (countdown/dispatch) so a stale terminal Sent state can't wedge the flow
+    // and block a second SOS press.
     LaunchedEffect(Unit) {
-        if (EmergencyService.liveState.value is EmergencyState.Idle) {
+        val current = EmergencyService.liveState.value
+        val inFlight = current is EmergencyState.CountingDown ||
+            current is EmergencyState.Dispatching
+        if (!inFlight) {
             EmergencyService.start(context, graceSeconds)
+        }
+    }
+
+    // Reset the process-static state when leaving the screen so the next open
+    // always starts from Idle (fixes single-use SOS countdown).
+    DisposableEffect(Unit) {
+        onDispose {
+            if (EmergencyService.liveState.value !is EmergencyState.CountingDown) {
+                EmergencyService.liveState.value = EmergencyState.Idle
+            }
         }
     }
 

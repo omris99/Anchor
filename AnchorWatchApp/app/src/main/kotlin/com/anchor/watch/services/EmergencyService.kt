@@ -188,7 +188,7 @@ class EmergencyService : Service() {
     }
 
     private fun vibrate() {
-        val pattern = longArrayOf(0, 300, 150, 300, 150, 600)
+        val pattern = SOS_VIBRATION_PATTERN
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vm = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vm.defaultVibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
@@ -216,6 +216,11 @@ class EmergencyService : Service() {
             @Suppress("DEPRECATION")
             stopForeground(true)
         }
+        // Self-heal: reset the process-static state so a subsequent SOS press starts
+        // a fresh countdown instead of observing a stale terminal state.
+        if (liveState.value !is EmergencyState.CountingDown) {
+            liveState.value = EmergencyState.Idle
+        }
         stopSelf()
     }
 
@@ -234,6 +239,11 @@ class EmergencyService : Service() {
         private const val CHANNEL_ID = "anchor_emergency"
         private const val NOTIFICATION_ID = 911
         private const val SENT_DISPLAY_MS = 3000L
+
+        // Loud, insistent SOS haptic: long buzzes. Medication uses a much softer/shorter
+        // pattern (see MedicationAlarmService.GENTLE_VIBRATION_PATTERN) — kept here so the
+        // two profiles can be compared in tests and stay deliberately distinct.
+        val SOS_VIBRATION_PATTERN = longArrayOf(0, 300, 150, 300, 150, 600)
 
         val liveState: MutableStateFlow<EmergencyState> = MutableStateFlow(EmergencyState.Idle)
 

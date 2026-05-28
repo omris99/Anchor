@@ -104,6 +104,39 @@ class SosServiceTest {
     }
 
     @Test
+    fun restartAfterSent_runsSecondCountdownAndDispatchesAgain() = runTest {
+        val store = FakeStore()
+        val api = FakeApi(online = true)
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val ids = listOf("evt-1", "evt-2").iterator()
+        val orch = EmergencyOrchestrator(
+            store = store,
+            api = api,
+            onQueueForRetry = {},
+            clock = { 0L },
+            idGenerator = { ids.next() },
+        )
+
+        // First SOS: run a full cycle through to Sent.
+        orch.start(graceSeconds = 1, scope = scope)
+        scope.testScheduler.advanceUntilIdle()
+        assertEquals(EmergencyState.Sent(online = true), orch.state.value)
+        assertEquals(1, api.calls)
+
+        // Second SOS without any manual reset: start() must re-arm the countdown
+        // and dispatch again (regression guard for the single-use SOS bug).
+        orch.start(graceSeconds = 2, scope = scope)
+        scope.testScheduler.advanceTimeBy(1)
+        assertEquals(EmergencyState.CountingDown(2, 2), orch.state.value)
+        scope.testScheduler.advanceUntilIdle()
+
+        assertEquals(EmergencyState.Sent(online = true), orch.state.value)
+        assertEquals(2, api.calls)
+        assertEquals(2, store.saved.size)
+        assertEquals("evt-2", store.saved[1].id)
+    }
+
+    @Test
     fun offlineDispatch_persistsAsUnsyncedAndSchedulesRetry() = runTest {
         val store = FakeStore()
         val api = FakeApi(online = false)

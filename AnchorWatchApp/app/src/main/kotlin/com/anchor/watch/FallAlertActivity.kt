@@ -1,6 +1,5 @@
 package com.anchor.watch
 
-import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -17,10 +16,6 @@ import com.anchor.watch.utils.FallDetectionConstants
 import com.anchor.watch.utils.LocaleHelper
 
 class FallAlertActivity : ComponentActivity() {
-
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleHelper.wrap(newBase))
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

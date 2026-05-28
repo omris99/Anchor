@@ -36,7 +36,9 @@
     <string name="cd_checkin_happy">אני מרגיש טוב</string>
 
     <string name="medication_loading">טוען...</string>
+    <string name="medication_confirmed">✓ נטלתי</string>
     <string name="cd_medication_taken">אישור נטילת תרופה</string>
+    <string name="cd_medication_confirmed">התרופה אושרה כנלקחה</string>
     <string name="medication_notification_title">תזכורת תרופה</string>
     <string name="medication_notification_text">ספירה לאחור פעילה</string>
     <string name="time_left_template">נשאר: %1$d:%2$02d</string>

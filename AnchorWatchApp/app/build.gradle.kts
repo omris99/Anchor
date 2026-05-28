@@ -26,9 +26,11 @@ android {
     }
 
     androidResources {
-        // SOURCE convention: package only Hebrew alternate-locale resources.
-        // The default values/ folder (English strings) is still shipped as fallback.
-        localeFilters += "he"
+        // Keep BOTH shipped locales. Hebrew strings now live in res/values-he/ (renamed
+        // from the legacy values-iw/), so the "he" filter actually matches the folder —
+        // previously "he" did not match the "iw" qualifier and Hebrew could be stripped,
+        // making a Hebrew selection fall back to English. "en" is the default values/.
+        localeFilters += listOf("en", "he")
     }
 
     buildTypes {

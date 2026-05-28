@@ -1,33 +1,50 @@
 package com.anchor.watch.utils
 
+import android.app.LocaleManager
 import android.content.Context
-import android.content.res.Configuration
+import android.os.LocaleList
+import android.text.TextUtils
+import android.view.View
 import androidx.compose.ui.unit.LayoutDirection
 import java.util.Locale
 
+/**
+ * Locale plumbing built on the platform per-app language API ([LocaleManager],
+ * Android 13+/API 33+; minSdk here is 34 so it is always available).
+ *
+ * The OS owns locale resolution and layout direction for *every* activity once
+ * [applyLanguage] is called — there is no per-activity `attachBaseContext` wrapping and
+ * no global `Locale.setDefault` mutation (both removed: the global default bled RTL into
+ * screens that never wrapped, distorting English layouts).
+ */
 object LocaleHelper {
 
-    private val HEBREW: Locale = Locale(LanguagePreference.LANG_HEBREW)
-    private val ENGLISH: Locale = Locale(LanguagePreference.LANG_ENGLISH)
-
-    fun wrap(context: Context): Context {
-        val lang = LanguagePreference.language(context) ?: return context
-        val locale = localeFor(lang)
-        Locale.setDefault(locale)
-        val config = Configuration(context.resources.configuration)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
-        return context.createConfigurationContext(config)
+    /** The active locale, read from the OS-configured context (never a hardcoded guess). */
+    fun currentLocale(context: Context): Locale {
+        val locales = context.resources.configuration.locales
+        return if (!locales.isEmpty) locales[0] else Locale.getDefault()
     }
 
+    /**
+     * Layout direction derived from the *resolved* locale via the framework's own
+     * bidi rules — correct for any RTL locale, not just a hardcoded Hebrew check.
+     */
     fun layoutDirection(context: Context): LayoutDirection =
-        when (LanguagePreference.language(context)) {
-            LanguagePreference.LANG_HEBREW -> LayoutDirection.Rtl
-            else -> LayoutDirection.Ltr
+        if (TextUtils.getLayoutDirectionFromLocale(currentLocale(context)) ==
+            View.LAYOUT_DIRECTION_RTL
+        ) {
+            LayoutDirection.Rtl
+        } else {
+            LayoutDirection.Ltr
         }
 
-    private fun localeFor(language: String): Locale = when (language) {
-        LanguagePreference.LANG_HEBREW -> HEBREW
-        else -> ENGLISH
+    /**
+     * Persist & apply [language] (a BCP-47 tag, e.g. "he"/"en") through the platform API.
+     * The system stores the preference and recreates activities with the matching locale
+     * and layout direction. Call once from the language picker.
+     */
+    fun applyLanguage(context: Context, language: String) {
+        context.getSystemService(LocaleManager::class.java)
+            ?.applicationLocales = LocaleList.forLanguageTags(language)
     }
 }

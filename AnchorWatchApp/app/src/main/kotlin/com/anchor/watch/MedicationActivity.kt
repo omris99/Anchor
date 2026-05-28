@@ -1,6 +1,5 @@
 package com.anchor.watch
 
-import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,10 +13,6 @@ import com.anchor.watch.services.MedicationAlarmService
 import com.anchor.watch.utils.LocaleHelper
 
 class MedicationActivity : ComponentActivity() {
-
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleHelper.wrap(newBase))
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,9 +43,10 @@ class MedicationActivity : ComponentActivity() {
                 MedicationReminderScreen(
                     store = store,
                     medicationId = medicationId,
+                    // Fire the remote /confirm now; the screen shows a brief "✓ Taken"
+                    // acknowledgment and then calls onFinished to close the activity.
                     onConfirm = {
                         MedicationAlarmService.sendConfirm(applicationContext, medicationId)
-                        finish()
                     },
                     onFinished = { finish() },
                 )

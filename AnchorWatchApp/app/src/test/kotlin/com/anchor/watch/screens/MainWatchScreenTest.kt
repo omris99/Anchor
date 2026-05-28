@@ -2,6 +2,9 @@ package com.anchor.watch.screens
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -23,7 +26,7 @@ import java.util.TimeZone
 @RunWith(RobolectricTestRunner::class)
 @Config(
     sdk = [33],
-    // Hebrew + Israel + RTL — forces values-iw/ resources to win and
+    // Hebrew + Israel + RTL — forces values-he/ resources to win and
     // LocalLayoutDirection to default to Rtl regardless of host JVM locale.
     qualifiers = "he-rIL-ldrtl",
     // Skip merged-manifest parsing. AGP 9 injects tags that Robolectric's
@@ -96,6 +99,27 @@ class MainWatchScreenTest {
             .assertHasClickAction()
             .performClick()
         assertTrue(clicked)
+    }
+
+    @Test
+    fun watchFace_showsExactlyOneClock() {
+        rule.setContent {
+            MainWatchScreen(
+                isAmbient = false,
+                onSosClick = {},
+            )
+        }
+        // Only the large centered Text should display a HH:mm time. The curved
+        // Wear TimeText was removed; reintroducing it would produce a second
+        // time node and fail this assertion (regression guard for the double clock).
+        val timePattern = Regex("^\\d{1,2}:\\d{2}$")
+        val isTimeNode = SemanticsMatcher("text matches HH:mm") { node ->
+            val texts = node.config.getOrNull(SemanticsProperties.Text)
+                ?.map { it.text }
+                ?: emptyList()
+            texts.any { timePattern.matches(it) }
+        }
+        assertEquals(1, rule.onAllNodes(isTimeNode).fetchSemanticsNodes().size)
     }
 
     @Test

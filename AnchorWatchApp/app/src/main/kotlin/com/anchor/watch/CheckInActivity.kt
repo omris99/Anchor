@@ -1,6 +1,5 @@
 package com.anchor.watch
 
-import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,10 +15,6 @@ import com.anchor.watch.services.CheckInSyncWorker
 import com.anchor.watch.utils.LocaleHelper
 
 class CheckInActivity : ComponentActivity() {
-
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleHelper.wrap(newBase))
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

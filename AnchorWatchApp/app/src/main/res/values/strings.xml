@@ -38,7 +38,9 @@
     <string name="cd_checkin_happy">I feel good</string>
 
     <string name="medication_loading">Loading…</string>
+    <string name="medication_confirmed">✓ Taken</string>
     <string name="cd_medication_taken">Confirm medication taken</string>
+    <string name="cd_medication_confirmed">Medication confirmed as taken</string>
     <string name="medication_notification_title">Medication reminder</string>
     <string name="medication_notification_text">Countdown in progress</string>
     <string name="time_left_template">Time left: %1$d:%2$02d</string>

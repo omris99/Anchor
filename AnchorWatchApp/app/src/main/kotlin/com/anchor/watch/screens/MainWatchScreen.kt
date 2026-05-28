@@ -33,16 +33,20 @@ import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Scaffold
 import androidx.wear.compose.material.Text
-import androidx.wear.compose.material.TimeText
 import com.anchor.watch.R
+import com.anchor.watch.utils.LocaleHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 internal object MainWatchFormatters {
-    private val hebrew = Locale("he")
-    fun time(date: Date): String = SimpleDateFormat("HH:mm", hebrew).format(date)
-    fun date(date: Date): String = SimpleDateFormat("dd/MM/yyyy", hebrew).format(date)
+    // Locale is supplied by the caller (resolved from the OS-configured context) so the
+    // clock/date follow the user's chosen language instead of a hardcoded Hebrew locale.
+    fun time(date: Date, locale: Locale = Locale.getDefault()): String =
+        SimpleDateFormat("HH:mm", locale).format(date)
+
+    fun date(date: Date, locale: Locale = Locale.getDefault()): String =
+        SimpleDateFormat("dd/MM/yyyy", locale).format(date)
 }
 
 internal object MainWatchSizing {
@@ -79,14 +83,17 @@ fun MainWatchScreen(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    val timeText = MainWatchFormatters.time(now)
-    val dateText = MainWatchFormatters.date(now)
+    val locale = LocaleHelper.currentLocale(context)
+    val timeText = MainWatchFormatters.time(now, locale)
+    val dateText = MainWatchFormatters.date(now, locale)
     val clockCd = stringResource(R.string.cd_clock)
     val dateCd = stringResource(R.string.cd_date)
     val sosCd = stringResource(R.string.cd_sos)
 
+    // Single clock only: the large centered Text below is the watch face's clock.
+    // Wear's curved TimeText was removed to avoid a duplicate time readout (elderly UX).
     Scaffold(
-        timeText = { if (!isAmbient) TimeText() },
+        timeText = {},
     ) {
         Box(
             modifier = Modifier

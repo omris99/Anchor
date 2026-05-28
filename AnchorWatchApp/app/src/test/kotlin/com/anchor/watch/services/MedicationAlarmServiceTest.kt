@@ -95,6 +95,50 @@ class MedicationAlarmServiceTest {
         )
     }
 
+    // 2026-05-16 is a Saturday (backend day code 6); 2026-05-17 is a Sunday (code 0).
+
+    @Test
+    fun nextTrigger_dayAware_todayAllowedAndFuture_returnsToday() {
+        val now = LocalDateTime.of(2026, 5, 16, 7, 0)
+        val time = LocalTime.of(8, 0)
+        assertEquals(
+            LocalDateTime.of(2026, 5, 16, 8, 0),
+            MedicationAlarmService.nextTriggerForToday(now, time, allowedDays = setOf(6)),
+        )
+    }
+
+    @Test
+    fun nextTrigger_dayAware_todayNotAllowed_skipsToNextAllowedDay() {
+        val now = LocalDateTime.of(2026, 5, 16, 7, 0)
+        val time = LocalTime.of(8, 0)
+        // Only Sunday (0) allowed → skip Saturday to the next day.
+        assertEquals(
+            LocalDateTime.of(2026, 5, 17, 8, 0),
+            MedicationAlarmService.nextTriggerForToday(now, time, allowedDays = setOf(0)),
+        )
+    }
+
+    @Test
+    fun nextTrigger_dayAware_todayAllowedButPassed_skipsToNextWeek() {
+        val now = LocalDateTime.of(2026, 5, 16, 9, 0)
+        val time = LocalTime.of(8, 0)
+        // Saturday allowed but 08:00 already passed → next Saturday.
+        assertEquals(
+            LocalDateTime.of(2026, 5, 23, 8, 0),
+            MedicationAlarmService.nextTriggerForToday(now, time, allowedDays = setOf(6)),
+        )
+    }
+
+    @Test
+    fun nextTrigger_dayAware_emptyAllowedDays_behavesLikeEveryDay() {
+        val now = LocalDateTime.of(2026, 5, 16, 9, 0)
+        val time = LocalTime.of(8, 0)
+        assertEquals(
+            MedicationAlarmService.nextTriggerForToday(now, time),
+            MedicationAlarmService.nextTriggerForToday(now, time, allowedDays = emptySet()),
+        )
+    }
+
     @Test
     fun confirm_withinGrace_marksTakenAndCancelsRepeat_andNoMiss() = runTest {
         val (repo, store) = seededRepo()
@@ -147,6 +191,47 @@ class MedicationAlarmServiceTest {
         assertEquals(MedicationStatus.MISSED, saved.status)
         assertEquals(listOf("med-1"), scheduledIds)
         assertTrue(cancelledIds.isEmpty())
+    }
+
+    @Test
+    fun confirmBeforeFirstTimeout_noAlertNoMissAndCancelsRepeat() = runTest {
+        val (repo, store) = seededRepo()
+        val alerts = AtomicInteger()
+        val scheduledIds = mutableListOf<String>()
+        val cancelledIds = mutableListOf<String>()
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val orch = MedicationOrchestrator(
+            repository = repo,
+            onScheduleRepeat = { scheduledIds += it },
+            onCancelRepeat = { cancelledIds += it },
+            onAlert = { alerts.incrementAndGet() },
+            timeoutManager = TimeoutManager(
+                firstDelayMs = 3 * 60 * 1000L,
+                secondDelayMs = 4 * 60 * 1000L,
+                tickIntervalMs = 1000L,
+            ),
+        )
+
+        orch.start(scope, "med-1")
+        scope.testScheduler.advanceTimeBy(60 * 1000L)
+        orch.confirm("med-1")
+        scope.testScheduler.advanceUntilIdle()
+
+        // Gentle re-prompt never fired, nothing was missed, snooze loop was stopped.
+        assertEquals(0, alerts.get())
+        assertEquals(MedicationStatus.TAKEN, store.items["med-1"]!!.status)
+        assertTrue(scheduledIds.isEmpty())
+        assertEquals(listOf("med-1"), cancelledIds)
+    }
+
+    @Test
+    fun gentleVibration_isDistinctlySofterThanSosAlarm() {
+        val sosTotal = EmergencyService.SOS_VIBRATION_PATTERN.sum()
+        val gentleTotal = MedicationAlarmService.GENTLE_VIBRATION_PATTERN.sum()
+        assertTrue(
+            "Medication haptic ($gentleTotal ms) must be shorter than SOS ($sosTotal ms)",
+            gentleTotal < sosTotal,
+        )
     }
 
     @Test

@@ -8,8 +8,13 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.anchor.watch.MedicationActivity
@@ -80,7 +85,10 @@ class MedicationAlarmService : Service() {
             onCancelRepeat = { id -> cancel(applicationContext, id) },
             // Medication reminders are strictly visual: re-launch the activity so the
             // screen wakes (showOnLockScreen + turnScreenOn) without any audio or haptics.
+            // Gentle re-prompt at the first timeout: soft chime + short buzz, then wake
+            // the screen again. Deliberately softer than SOS (audio is otherwise SOS-only).
             onAlert = {
+                gentleAlert()
                 liveMedicationId.value?.let { launchActivity(it) }
             },
             timeoutManager = TimeoutManager(
@@ -103,8 +111,9 @@ class MedicationAlarmService : Service() {
                 }
                 liveMedicationId.value = id
                 startForegroundCompat()
-                // Visual-only reminder: wake the screen by launching the activity, no
-                // vibrate / no ringtone (per Mission 3 — audio is reserved for SOS).
+                // Gentle nudge on every fire — including each 15-min snooze re-fire — so
+                // an ignored reminder keeps softly re-alerting until taken.
+                gentleAlert()
                 launchActivity(id)
                 orchestrator.start(scope, id)
             }
@@ -123,6 +132,39 @@ class MedicationAlarmService : Service() {
             else -> stopSelfSafe()
         }
         return START_NOT_STICKY
+    }
+
+    /**
+     * Gentle medication alert — intentionally distinct from and softer than the SOS
+     * alarm: a short double-tap buzz plus a one-shot NOTIFICATION chime (not the looping
+     * TYPE_ALARM ringtone SOS uses). Repetition comes from the existing 15-min snooze
+     * loop re-firing this service, not from a continuous loud alarm.
+     */
+    private fun gentleAlert() {
+        gentleVibrate()
+        playGentleChime()
+    }
+
+    private fun gentleVibrate() {
+        val effect = VibrationEffect.createWaveform(GENTLE_VIBRATION_PATTERN, -1)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vm.defaultVibrator.vibrate(effect)
+        } else {
+            @Suppress("DEPRECATION")
+            (getSystemService(VIBRATOR_SERVICE) as Vibrator).vibrate(effect)
+        }
+    }
+
+    private fun playGentleChime() {
+        // Soft notification tone, played once (no loop) at notification volume.
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION) ?: return
+        val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
+        ringtone.audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        ringtone.play()
     }
 
     private fun launchActivity(medicationId: String) {
@@ -199,6 +241,10 @@ class MedicationAlarmService : Service() {
         private const val FIRST_TIMEOUT_MS = 3 * 60 * 1000L
         private const val SECOND_TIMEOUT_MS = 4 * 60 * 1000L
 
+        // Short, soft double-tap. Total duration is far shorter than
+        // EmergencyService.SOS_VIBRATION_PATTERN so the medication haptic stays gentle.
+        val GENTLE_VIBRATION_PATTERN = longArrayOf(0, 120, 80, 120)
+
         val livePhase: MutableStateFlow<TimeoutManager.Phase> =
             MutableStateFlow(TimeoutManager.Phase.Idle)
         val liveMedicationId: MutableStateFlow<String?> = MutableStateFlow(null)
@@ -226,6 +272,37 @@ class MedicationAlarmService : Service() {
 
         fun nextTriggerMillis(now: LocalDateTime, scheduledTime: LocalTime): Long =
             nextTriggerForToday(now, scheduledTime)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+
+        /**
+         * Next trigger honoring backend day codes (0=Sun..6=Sat). An empty [allowedDays]
+         * means "every day" and behaves like the day-agnostic overload. Scans up to 7
+         * days ahead for the first allowed day whose scheduled time is still in the future.
+         */
+        fun nextTriggerForToday(
+            now: LocalDateTime,
+            scheduledTime: LocalTime,
+            allowedDays: Set<Int>,
+        ): LocalDateTime {
+            if (allowedDays.isEmpty()) return nextTriggerForToday(now, scheduledTime)
+            for (offset in 0..7) {
+                val candidate = now.toLocalDate().plusDays(offset.toLong()).atTime(scheduledTime)
+                // java.time: MON=1..SUN=7 → backend code 0=Sun..6=Sat via value % 7.
+                val code = candidate.dayOfWeek.value % 7
+                if (code in allowedDays && candidate.isAfter(now)) return candidate
+            }
+            // Unreachable for any non-empty allowedDays, but stay total.
+            return nextTriggerForToday(now, scheduledTime)
+        }
+
+        fun nextTriggerMillis(
+            now: LocalDateTime,
+            scheduledTime: LocalTime,
+            allowedDays: Set<Int>,
+        ): Long =
+            nextTriggerForToday(now, scheduledTime, allowedDays)
                 .atZone(ZoneId.systemDefault())
                 .toInstant()
                 .toEpochMilli()

@@ -7,6 +7,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.TypeConverter
 
 @Entity(tableName = "medications")
 data class MedicationEntity(
@@ -17,7 +18,20 @@ data class MedicationEntity(
     val userId: String,
     val isSynced: Boolean = true,
     val statusTimestamp: Long? = null,
+    // Backend day codes 0=Sun..6=Sat. Empty = every day.
+    val daysOfWeek: List<Int> = emptyList(),
 )
+
+/** Persists [MedicationEntity.daysOfWeek] as a CSV string column. */
+class IntListConverter {
+    @TypeConverter
+    fun fromList(value: List<Int>): String = value.joinToString(",")
+
+    @TypeConverter
+    fun toList(value: String): List<Int> =
+        if (value.isBlank()) emptyList()
+        else value.split(",").mapNotNull { it.trim().toIntOrNull() }
+}
 
 @Dao
 interface MedicationDao {

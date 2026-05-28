@@ -35,6 +35,10 @@ import com.anchor.watch.data.local.MedicationEntity
 import com.anchor.watch.data.local.MedicationStore
 import com.anchor.watch.services.MedicationAlarmService
 import com.anchor.watch.utils.TimeoutManager
+import kotlinx.coroutines.delay
+
+/** How long the "✓ Taken" acknowledgment shows before the screen closes. */
+private const val CONFIRMATION_DISPLAY_MS = 1200L
 
 @Composable
 fun MedicationReminderScreen(
@@ -42,8 +46,10 @@ fun MedicationReminderScreen(
     medicationId: String,
     onConfirm: () -> Unit,
     onFinished: () -> Unit,
+    confirmationDisplayMs: Long = CONFIRMATION_DISPLAY_MS,
 ) {
     var medication by remember { mutableStateOf<MedicationEntity?>(null) }
+    var confirmed by remember { mutableStateOf(false) }
     val phase by MedicationAlarmService.livePhase.collectAsState()
 
     LaunchedEffect(medicationId) {
@@ -51,8 +57,17 @@ fun MedicationReminderScreen(
         if (medication == null) onFinished()
     }
 
+    // Don't let a timeout yank the screen away once the user has acknowledged.
     LaunchedEffect(phase) {
-        if (phase == TimeoutManager.Phase.Expired) onFinished()
+        if (!confirmed && phase == TimeoutManager.Phase.Expired) onFinished()
+    }
+
+    // Show the acknowledgment briefly so the elderly user sees feedback, then close.
+    LaunchedEffect(confirmed) {
+        if (confirmed) {
+            delay(confirmationDisplayMs)
+            onFinished()
+        }
     }
 
     val remainingMs = when (val p = phase) {
@@ -63,6 +78,7 @@ fun MedicationReminderScreen(
     val minutes = (remainingMs / 60_000L).toInt()
     val seconds = ((remainingMs % 60_000L) / 1000L).toInt()
     val takenCd = stringResource(R.string.cd_medication_taken)
+    val confirmedCd = stringResource(R.string.cd_medication_confirmed)
 
     Scaffold(timeText = {}) {
         Box(
@@ -78,6 +94,18 @@ fun MedicationReminderScreen(
                     .fillMaxSize()
                     .padding(horizontal = 10.dp, vertical = 12.dp),
             ) {
+                if (confirmed) {
+                    Text(
+                        text = stringResource(R.string.medication_confirmed),
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colorResource(R.color.text_primary),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.semantics { contentDescription = confirmedCd },
+                    )
+                    return@Column
+                }
+
                 Text(
                     text = medication?.name ?: stringResource(R.string.medication_loading),
                     fontSize = 26.sp,
@@ -97,7 +125,11 @@ fun MedicationReminderScreen(
                 Spacer(Modifier.height(12.dp))
 
                 Button(
-                    onClick = onConfirm,
+                    onClick = {
+                        // Acknowledge immediately (UX feedback), then fire the remote confirm.
+                        confirmed = true
+                        onConfirm()
+                    },
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = colorResource(R.color.confirm),
                         contentColor = colorResource(R.color.text_primary),

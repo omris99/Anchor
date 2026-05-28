@@ -17,7 +17,6 @@
 
 package com.anchor.anchorwatchapp.presentation
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -35,6 +34,8 @@ import com.anchor.watch.screens.MainWatchScreen
 import com.anchor.watch.screens.SosScreen
 import com.anchor.watch.screens.WatchPairingScreen
 import com.anchor.watch.services.FallDetectionService
+import com.anchor.watch.services.MedicationScheduler
+import com.anchor.watch.services.MedicationSyncWorker
 import com.anchor.watch.utils.LanguagePreference
 import com.anchor.watch.utils.LocaleHelper
 import kotlinx.coroutines.launch
@@ -50,10 +51,6 @@ class MainActivity : ComponentActivity() {
 
     // Start in Loading so we never flash the wrong screen before the key check completes.
     private var screen by mutableStateOf<Screen>(Screen.Loading)
-
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleHelper.wrap(newBase))
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +68,12 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val hasKey = WatchKeyStore.get(applicationContext).apiKey() != null
             screen = if (hasKey) Screen.Main else Screen.Pairing
+            if (hasKey) {
+                // Paired: pull today's reminders + reschedule alarms now, and keep them
+                // fresh in the background. Without this the watch never armed any alarm.
+                runCatching { MedicationScheduler.syncAndReschedule(applicationContext) }
+                MedicationSyncWorker.enqueuePeriodic(applicationContext)
+            }
         }
 
         FallDetectionService.start(applicationContext)

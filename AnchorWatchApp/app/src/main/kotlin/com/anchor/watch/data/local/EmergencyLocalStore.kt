@@ -10,6 +10,9 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Entity(tableName = "emergency_events")
 data class EmergencyEventEntity(
@@ -34,9 +37,10 @@ interface EmergencyDao {
 
 @Database(
     entities = [EmergencyEventEntity::class, CheckInEntity::class, MedicationEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
+@TypeConverters(IntListConverter::class)
 abstract class AnchorDatabase : RoomDatabase() {
     abstract fun emergencyDao(): EmergencyDao
     abstract fun checkInDao(): CheckInDao
@@ -46,13 +50,23 @@ abstract class AnchorDatabase : RoomDatabase() {
         @Volatile
         private var instance: AnchorDatabase? = null
 
+        // Adds MedicationEntity.daysOfWeek (CSV via IntListConverter). Non-destructive
+        // so queued offline emergency/check-in events survive the upgrade.
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE medications ADD COLUMN daysOfWeek TEXT NOT NULL DEFAULT ''",
+                )
+            }
+        }
+
         fun get(context: Context): AnchorDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     AnchorDatabase::class.java,
                     "anchor-watch.db",
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
     }
 }
