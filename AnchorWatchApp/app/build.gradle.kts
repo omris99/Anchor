@@ -120,6 +120,9 @@ dependencies {
     // --- DataStore (X-Watch-Key persistence) ---
     implementation(libs.datastore.preferences)
 
+    // --- QR code generation (WatchPairingScreen) ---
+    implementation(libs.zxing.core)
+
     // --- Unit tests (SOURCE) ---
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)

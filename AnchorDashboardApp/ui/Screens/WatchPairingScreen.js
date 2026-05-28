@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
     Alert,
     Image,
@@ -11,19 +11,30 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import ClassicButton from '../components/ClassicButton';
+import { UserContext } from '../../App';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
 export default function WatchPairingScreen({ navigation }) {
+    const { user } = useContext(UserContext);
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
     const [pairedWatchId, setPairedWatchId] = useState(null);
 
-    const handleBarcodeScanned = ({ data }) => {
+    const handleBarcodeScanned = async ({ data }) => {
         if (scanned) return;
         setScanned(true);
 
-        // TODO: POST /watch/pair — שליחת watchId לשרת לקישור עם המשתמש הנוכחי
-        // data מכיל את ה-watchId שהשעון הציג
-        setPairedWatchId(data);
+        try {
+            // data is the pairing_token displayed as QR on the watch.
+            await apiRequest(`/users/${user.userId}/watch/pair`, {
+                method: 'POST',
+                body: JSON.stringify({ pairing_token: data }),
+            });
+            setPairedWatchId(data);
+        } catch (err) {
+            Alert.alert('שגיאה', 'לא ניתן לקשר את השעון. ודא שה-QR עדכני ונסה שוב.');
+            setScanned(false);
+        }
     };
 
     const handlePairAgain = () => {

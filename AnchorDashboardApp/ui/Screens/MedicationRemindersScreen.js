@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
     Alert,
     FlatList,
@@ -16,6 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ClassicButton from '../components/ClassicButton';
 import TextInputField from '../components/TextInputField';
 import DaySelector, { DAY_NAMES } from '../components/DaySelector';
+import { UserContext } from '../../App';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
 function formatTime(date) {
     const hours = date.getHours().toString().padStart(2, '0');
@@ -28,9 +30,21 @@ function formatDays(selectedDays) {
     return selectedDays.map(dayIndex => DAY_NAMES[dayIndex]).join(', ');
 }
 
-let nextReminderId = 1;
+// Converts a server medication record to the shape the UI expects.
+function serverMedToLocal(med) {
+    const [hours, minutes] = med.scheduled_time.split(':').map(Number);
+    const time = new Date();
+    time.setHours(hours, minutes, 0, 0);
+    return {
+        id: med.id,
+        name: med.medication_name,
+        time,
+        days: med.days_of_week ?? [0, 1, 2, 3, 4, 5, 6],
+    };
+}
 
 export default function MedicationRemindersScreen({ navigation }) {
+    const { user } = useContext(UserContext);
     const [medicationName, setMedicationName] = useState('');
     const [selectedTime, setSelectedTime] = useState(() => {
         const now = new Date();
@@ -43,9 +57,12 @@ export default function MedicationRemindersScreen({ navigation }) {
     const [isPickerVisible, setIsPickerVisible] = useState(false);
     const [pendingTime, setPendingTime] = useState(selectedTime);
 
-    // TODO: LOAD — טעינת תזכורות קיימות מהשרת בעת כניסה למסך.
-    // יש לקרוא ל-GET /users/{userId}/medication-reminders ולמלא את reminders בתוצאה.
-    useEffect(() => {}, []);
+    // Load existing reminders from the server when the screen opens.
+    useEffect(() => {
+        apiRequest(`/users/${user.userId}/medication-reminders`)
+            .then(data => setReminders((data.medications ?? []).map(serverMedToLocal)))
+            .catch(() => {});
+    }, []);
 
     const openTimePicker = () => {
         setPendingTime(selectedTime);
@@ -61,7 +78,7 @@ export default function MedicationRemindersScreen({ navigation }) {
         setIsPickerVisible(false);
     };
 
-    const addReminder = () => {
+    const addReminder = async () => {
         if (!medicationName.trim()) {
             Alert.alert('שגיאה', 'יש להזין שם תרופה לפני הוספת תזכורת');
             return;
@@ -71,24 +88,34 @@ export default function MedicationRemindersScreen({ navigation }) {
             return;
         }
         Keyboard.dismiss();
-        const newReminder = {
-            id: String(nextReminderId++),
-            name: medicationName.trim(),
-            time: selectedTime,
-            days: selectedDays,
-        };
-        // TODO: SAVE — שמירת התזכורת החדשה בשרת לפני עדכון ה-state המקומי.
-        // יש לקרוא ל-POST /users/{userId}/medication-reminders עם newReminder,
-        // ולהשתמש ב-id שהשרת מחזיר במקום nextReminderId.
-        setReminders(previousReminders => [...previousReminders, newReminder]);
-        setMedicationName('');
-        setSelectedDays([]);
+
+        try {
+            // Save to server first; use the server-assigned id in local state.
+            const saved = await apiRequest(`/users/${user.userId}/medication-reminders`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    medication_name: medicationName.trim(),
+                    scheduled_time: formatTime(selectedTime),
+                    days_of_week: selectedDays,
+                }),
+            });
+            setReminders(prev => [...prev, serverMedToLocal(saved)]);
+            setMedicationName('');
+            setSelectedDays([]);
+        } catch {
+            Alert.alert('שגיאה', 'לא ניתן לשמור את התזכורת. נסה שוב.');
+        }
     };
 
-    const removeReminder = (reminderId) => {
-        setReminders(previousReminders =>
-            previousReminders.filter(reminder => reminder.id !== reminderId)
-        );
+    const removeReminder = async (reminderId) => {
+        try {
+            await apiRequest(`/users/${user.userId}/medication-reminders/${reminderId}`, {
+                method: 'DELETE',
+            });
+            setReminders(prev => prev.filter(r => r.id !== reminderId));
+        } catch {
+            Alert.alert('שגיאה', 'לא ניתן למחוק את התזכורת. נסה שוב.');
+        }
     };
 
     const renderReminder = ({ item }) => (

@@ -55,15 +55,36 @@ deploy_lambda() {
   cd ../..
 }
 
-# --- Deploy all auth lambdas ---
+# --- Deploy all lambdas ---
 echo ""
 echo "[2/3] Deploying Lambda functions..."
+
+# Auth (already deployed — update if code changed)
 deploy_lambda "auth-register"   "auth-register"
 deploy_lambda "auth-login"      "auth-login"
 deploy_lambda "auth-confirm"    "auth-confirm"
 deploy_lambda "auth-verify-mfa" "auth-verify-mfa"
 
+# Watch pairing
+deploy_lambda "watch-init-pairing" "watch-init-pairing"
+deploy_lambda "watch-pair"         "watch-pair"
+deploy_lambda "watch-credentials"  "watch-credentials"
+
+# Check-ins
+deploy_lambda "checkins"     "checkins"
+deploy_lambda "checkins-get" "checkins-get"
+
+# Medication reminders
+deploy_lambda "medication-reminders-get"       "medication-reminders-get"
+deploy_lambda "medication-reminders-confirm"   "medication-reminders-confirm"
+deploy_lambda "medication-reminders-missed"    "medication-reminders-missed"
+deploy_lambda "medication-reminders-dashboard" "medication-reminders-dashboard"
+
+# Emergency
+deploy_lambda "emergency"             "emergency"
+deploy_lambda "emergency-acknowledge" "emergency-acknowledge"
+
 echo ""
 echo "[3/3] Done!"
 echo ""
-echo "Next step: run scripts/create-api-gateway.sh"
+echo "Next step: run scripts/add-new-routes.sh"

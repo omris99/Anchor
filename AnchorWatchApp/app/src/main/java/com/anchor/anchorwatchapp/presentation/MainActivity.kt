@@ -27,21 +27,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.lifecycle.lifecycleScope
 import com.anchor.watch.LanguageSelectionActivity
+import com.anchor.watch.network.PartnerApi
+import com.anchor.watch.network.WatchKeyStore
 import com.anchor.watch.screens.MainWatchScreen
 import com.anchor.watch.screens.SosScreen
+import com.anchor.watch.screens.WatchPairingScreen
 import com.anchor.watch.services.FallDetectionService
 import com.anchor.watch.utils.LanguagePreference
 import com.anchor.watch.utils.LocaleHelper
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private sealed interface Screen {
+        data object Loading : Screen
+        data object Pairing : Screen
         data object Main : Screen
         data object Sos : Screen
     }
 
-    private var screen by mutableStateOf<Screen>(Screen.Main)
+    // Start in Loading so we never flash the wrong screen before the key check completes.
+    private var screen by mutableStateOf<Screen>(Screen.Loading)
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.wrap(newBase))
@@ -52,25 +60,38 @@ class MainActivity : ComponentActivity() {
 
         if (!LanguagePreference.isConfigured(this)) {
             val intent = Intent(this, LanguageSelectionActivity::class.java).apply {
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TASK,
-                )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             }
             startActivity(intent)
             finish()
             return
         }
 
+        // Check for a stored watch API key and decide which screen to show.
+        lifecycleScope.launch {
+            val hasKey = WatchKeyStore.get(applicationContext).apiKey() != null
+            screen = if (hasKey) Screen.Main else Screen.Pairing
+        }
+
         FallDetectionService.start(applicationContext)
         val layoutDirection = LocaleHelper.layoutDirection(this)
+
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 when (screen) {
+                    Screen.Loading -> Unit  // blank while key check runs (fast, ~50 ms)
+
+                    Screen.Pairing -> WatchPairingScreen(
+                        pairingApi = PartnerApi.pairing(applicationContext),
+                        watchKeyStore = WatchKeyStore.get(applicationContext),
+                        onPaired = { screen = Screen.Main },
+                    )
+
                     Screen.Main -> MainWatchScreen(
                         isAmbient = false,
                         onSosClick = { screen = Screen.Sos },
                     )
+
                     Screen.Sos -> SosScreen(
                         onDismiss = { screen = Screen.Main },
                     )

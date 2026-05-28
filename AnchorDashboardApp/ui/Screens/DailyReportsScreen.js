@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
     Image,
     ImageBackground,
@@ -10,9 +10,10 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { UserContext } from '../../App';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
-// TODO: LOAD — יש לטעון דיווחים יומיים אמיתיים מהשרת.
-// GET /users/{userId}/reports
+// Shown when no real data is available yet (network error, not yet paired, etc.)
 const MOCK_REPORTS = [
     {
         id: 'r1',
@@ -22,9 +23,7 @@ const MOCK_REPORTS = [
             { name: 'אקמול', time: '08:00' },
             { name: 'ויטמין D', time: '08:00' },
         ],
-        medicationsPending: [
-            { name: 'מטפורמין', time: '13:00' },
-        ],
+        medicationsPending: [{ name: 'מטפורמין', time: '13:00' }],
         generalFeelingEmoji: '🙂',
         batteryPercent: 68,
         location: { lat: 32.0853, lng: 34.7818 },
@@ -47,9 +46,7 @@ const MOCK_REPORTS = [
         id: 'r3',
         dateLabel: '3/5/2026',
         wakeUpTime: '06:45',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-        ],
+        medicationsTaken: [{ name: 'אקמול', time: '08:00' }],
         medicationsPending: [
             { name: 'ויטמין D', time: '08:00' },
             { name: 'מטפורמין', time: '13:00' },
@@ -58,79 +55,24 @@ const MOCK_REPORTS = [
         batteryPercent: 45,
         location: { lat: 32.0853, lng: 34.7818 },
     },
-    {
-        id: 'r4',
-        dateLabel: '2/5/2026',
-        wakeUpTime: '08:15',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-            { name: 'ויטמין D', time: '08:00' },
-            { name: 'מטפורמין', time: '13:00' },
-        ],
-        medicationsPending: [],
-        generalFeelingEmoji: '🙂',
-        batteryPercent: 90,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-        id: 'r5',
-        dateLabel: '1/5/2026',
-        wakeUpTime: '07:30',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-        ],
-        medicationsPending: [
-            { name: 'ויטמין D', time: '08:00' },
-            { name: 'מטפורמין', time: '13:00' },
-        ],
-        generalFeelingEmoji: '😔',
-        batteryPercent: 55,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-        id: 'r6',
-        dateLabel: '30/4/2026',
-        wakeUpTime: '07:05',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-            { name: 'ויטמין D', time: '08:00' },
-            { name: 'מטפורמין', time: '13:00' },
-        ],
-        medicationsPending: [],
-        generalFeelingEmoji: '🙂',
-        batteryPercent: 77,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-        id: 'r7',
-        dateLabel: '29/4/2026',
-        wakeUpTime: '08:40',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-            { name: 'מטפורמין', time: '13:00' },
-        ],
-        medicationsPending: [
-            { name: 'ויטמין D', time: '08:00' },
-        ],
-        generalFeelingEmoji: '😔',
-        batteryPercent: 32,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-        id: 'r8',
-        dateLabel: '28/4/2026',
-        wakeUpTime: '07:22',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-            { name: 'ויטמין D', time: '08:00' },
-            { name: 'מטפורמין', time: '13:00' },
-        ],
-        medicationsPending: [],
-        generalFeelingEmoji: '😐',
-        batteryPercent: 85,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
 ];
+
+const STATUS_EMOJI = { happy: '😊', neutral: '😐', sad: '😔', no_response: '—' };
+
+// Maps a server check-in to the same shape as MOCK_REPORTS so ReportCard stays unchanged.
+function checkinToReport(checkin, index) {
+    const date = new Date(checkin.timestamp);
+    return {
+        id: checkin.id || checkin.event_id || String(index),
+        dateLabel: index === 0 ? 'היום' : index === 1 ? 'אתמול' : date.toLocaleDateString('he-IL'),
+        wakeUpTime: date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        medicationsTaken: [],
+        medicationsPending: [],
+        generalFeelingEmoji: STATUS_EMOJI[checkin.status] ?? '—',
+        batteryPercent: null,
+        location: null,
+    };
+}
 
 function openMapLocation(location) {
     const url = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
@@ -151,55 +93,67 @@ function ReportCard({ report, isFirst }) {
                 <Text style={styles.rowValue}>{report.wakeUpTime}</Text>
             </View>
 
-            <View style={styles.row}>
-                <Text style={styles.rowLabel}>
-                    תרופות שננטלו ({report.medicationsTaken.length}):
-                </Text>
-                <Text style={styles.rowValue}>
-                    {report.medicationsTaken.length > 0
-                        ? report.medicationsTaken
-                            .map(m => `${m.name} (${m.time})`)
-                            .join(', ')
-                        : 'אף תרופה לא נלקחה'}
-                </Text>
-            </View>
+            {report.medicationsTaken.length > 0 && (
+                <View style={styles.row}>
+                    <Text style={styles.rowLabel}>
+                        תרופות שננטלו ({report.medicationsTaken.length}):
+                    </Text>
+                    <Text style={styles.rowValue}>
+                        {report.medicationsTaken.map(m => `${m.name} (${m.time})`).join(', ')}
+                    </Text>
+                </View>
+            )}
 
-            <View style={[styles.row, hasPending && styles.rowWarning]}>
-                <Text style={[styles.rowLabel, hasPending && styles.rowLabelWarning]}>
-                    תרופות שנותר לנטול ({report.medicationsPending.length}):
-                </Text>
-                <Text style={[styles.rowValue, hasPending && styles.rowValueWarning]}>
-                    {hasPending
-                        ? report.medicationsPending
-                            .map(m => `${m.name} (${m.time})`)
-                            .join(', ')
-                        : 'הכל נלקח ✓'}
-                </Text>
-            </View>
+            {report.medicationsPending.length > 0 && (
+                <View style={[styles.row, styles.rowWarning]}>
+                    <Text style={[styles.rowLabel, styles.rowLabelWarning]}>
+                        תרופות שנותר לנטול ({report.medicationsPending.length}):
+                    </Text>
+                    <Text style={[styles.rowValue, styles.rowValueWarning]}>
+                        {report.medicationsPending.map(m => `${m.name} (${m.time})`).join(', ')}
+                    </Text>
+                </View>
+            )}
 
             <View style={styles.row}>
                 <Text style={styles.rowLabel}>הרגשה כללית:</Text>
                 <Text style={styles.rowValueEmoji}>{report.generalFeelingEmoji}</Text>
             </View>
 
-            <View style={styles.row}>
-                <Text style={styles.rowLabel}>סוללת השעון:</Text>
-                <Text style={styles.rowValue}>{report.batteryPercent}%</Text>
-            </View>
+            {report.batteryPercent != null && (
+                <View style={styles.row}>
+                    <Text style={styles.rowLabel}>סוללת השעון:</Text>
+                    <Text style={styles.rowValue}>{report.batteryPercent}%</Text>
+                </View>
+            )}
 
-            <TouchableOpacity
-                style={styles.mapButton}
-                activeOpacity={0.7}
-                onPress={() => openMapLocation(report.location)}
-            >
-                <Text style={styles.mapButtonText}>מיקום על המפה</Text>
-            </TouchableOpacity>
+            {report.location != null && (
+                <TouchableOpacity
+                    style={styles.mapButton}
+                    activeOpacity={0.7}
+                    onPress={() => openMapLocation(report.location)}
+                >
+                    <Text style={styles.mapButtonText}>מיקום על המפה</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 }
 
 export default function DailyReportsScreen({ navigation }) {
-    const [todayReport, ...historyReports] = MOCK_REPORTS;
+    const { user } = useContext(UserContext);
+    const [reports, setReports] = useState(MOCK_REPORTS);
+
+    useEffect(() => {
+        apiRequest(`/users/${user.userId}/checkins`)
+            .then(data => {
+                const real = (data.checkins ?? []).map(checkinToReport);
+                if (real.length > 0) setReports(real);
+            })
+            .catch(() => {}); // keep mock data on error
+    }, []);
+
+    const [todayReport, ...historyReports] = reports;
 
     return (
         <ImageBackground
@@ -208,7 +162,11 @@ export default function DailyReportsScreen({ navigation }) {
         >
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                        activeOpacity={0.7}
+                    >
                         <Text style={styles.backArrow}>←</Text>
                     </TouchableOpacity>
                     <Image

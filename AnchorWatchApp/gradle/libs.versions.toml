@@ -38,6 +38,9 @@ moshi = "1.15.1"
 # --- DataStore (adapter X-Watch-Key persistence) ---
 datastorePreferences = "1.1.1"
 
+# --- QR code generation (WatchPairingScreen) ---
+zxingCore = "3.5.3"
+
 # --- Test (SOURCE additions) ---
 junit4 = "4.13.2"
 robolectric = "4.14.1"
@@ -92,6 +95,9 @@ moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.re
 
 # --- DataStore (X-Watch-Key persistence) ---
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
+
+# --- QR code generation ---
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
 
 # --- Test (SOURCE deps) ---
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }

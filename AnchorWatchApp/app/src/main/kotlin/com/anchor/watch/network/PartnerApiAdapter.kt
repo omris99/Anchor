@@ -28,6 +28,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -143,6 +144,12 @@ internal interface PartnerCheckInService {
 internal interface PartnerPairingService {
     @POST("watch/init-pairing")
     suspend fun initPairing(): retrofit2.Response<InitPairingResponseDto>
+
+    // Polling endpoint: returns watch_api_key once dashboard completes pairing.
+    @GET("watch/credentials")
+    suspend fun fetchCredentials(
+        @Query("watch_id") watchId: String,
+    ): retrofit2.Response<PairingResultDto>
 }
 
 // ─────────────────────────────── DTOs (Moshi) ───────────────────────────────────
@@ -201,6 +208,7 @@ internal data class MedicationStatusDto(
 @JsonClass(generateAdapter = true)
 internal data class InitPairingResponseDto(
     val pairing_token: String,
+    val watch_id: String,       // used for polling GET /watch/credentials
     val expires_at: Long,
 )
 
@@ -299,6 +307,19 @@ class PartnerPairingApi internal constructor(
         withContext(Dispatchers.IO) {
             runCatching {
                 val response = service.initPairing()
+                if (response.isSuccessful) response.body() else null
+            }.getOrNull()
+        }
+
+    /**
+     * Polls the backend for the permanent watch_api_key by watch_id.
+     * Returns null when not paired yet (404) or on network error.
+     * Returns [PairingResultDto] once the dashboard has completed pairing.
+     */
+    internal suspend fun fetchCredentials(watchId: String): PairingResultDto? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val response = service.fetchCredentials(watchId)
                 if (response.isSuccessful) response.body() else null
             }.getOrNull()
         }
