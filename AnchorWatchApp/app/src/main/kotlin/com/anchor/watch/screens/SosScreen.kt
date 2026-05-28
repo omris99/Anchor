@@ -1,0 +1,125 @@
+package com.anchor.watch.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
+import androidx.wear.compose.material.Scaffold
+import androidx.wear.compose.material.Text
+import com.anchor.watch.R
+import com.anchor.watch.services.EmergencyService
+import com.anchor.watch.services.EmergencyState
+import kotlinx.coroutines.delay
+
+@Composable
+fun SosScreen(
+    graceSeconds: Int = EmergencyService.DEFAULT_GRACE_SECONDS,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val state by EmergencyService.liveState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        if (EmergencyService.liveState.value is EmergencyState.Idle) {
+            EmergencyService.start(context, graceSeconds)
+        }
+    }
+
+    LaunchedEffect(state) {
+        if (state is EmergencyState.Sent) {
+            delay(2500L)
+            onDismiss()
+        }
+    }
+
+    val cancelCd = stringResource(R.string.cd_sos_cancel)
+
+    Scaffold(timeText = {}) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorResource(R.color.sos)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 10.dp, vertical = 12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.sos_title),
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colorResource(R.color.text_primary),
+                    textAlign = TextAlign.Center,
+                )
+
+                Spacer(Modifier.height(6.dp))
+
+                val message = when (val s = state) {
+                    is EmergencyState.CountingDown ->
+                        stringResource(R.string.sos_countdown_template, s.secondsLeft)
+                    EmergencyState.Dispatching -> stringResource(R.string.sos_dispatching)
+                    is EmergencyState.Sent ->
+                        if (s.online) stringResource(R.string.sos_sent)
+                        else stringResource(R.string.sos_queued)
+                    EmergencyState.Idle -> stringResource(R.string.sos_initializing)
+                }
+                Text(
+                    text = message,
+                    fontSize = 20.sp,
+                    color = colorResource(R.color.text_primary),
+                    textAlign = TextAlign.Center,
+                )
+
+                if (state is EmergencyState.CountingDown) {
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            EmergencyService.cancel(context)
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = colorResource(R.color.confirm),
+                            contentColor = colorResource(R.color.text_primary),
+                        ),
+                        modifier = Modifier
+                            .size(72.dp)
+                            .semantics { contentDescription = cancelCd },
+                    ) {
+                        Text(
+                            text = stringResource(R.string.sos_cancel),
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorResource(R.color.text_primary),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

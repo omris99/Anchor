@@ -1,6 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Anchor</string>
-    <string name="welcome_user">ברוך הבא, %s</string> <string name="daily_checkin_question">איך אתה מרגיש היום?</string> <string name="sos_button">S.O.S</string> <string name="medication_taken">נטלתי</string> <string name="cancel">בטל</string>
-</resources>
+    <!-- App identity -->
+    <string name="app_name">עוגן</string>
 
+    <!-- TARGET originals (preserved verbatim) -->
+    <string name="welcome_user">ברוך הבא, %s</string>
+    <string name="daily_checkin_question">איך אתה מרגיש היום?</string>
+    <string name="sos_button">S.O.S</string>
+    <string name="medication_taken">נטלתי</string>
+    <string name="cancel">בטל</string>
+
+    <!-- SOURCE Hebrew strings (com.anchor.watch.* screens consume these) -->
+    <string name="btn_sos">חירום</string>
+    <string name="btn_menu">תפריט</string>
+    <string name="cd_clock">השעה הנוכחית</string>
+    <string name="cd_date">התאריך הנוכחי</string>
+    <string name="cd_sos">לחצן חירום</string>
+    <string name="cd_menu">פתח תפריט</string>
+
+    <string name="sos_title">S.O.S</string>
+    <string name="sos_countdown_template">שולח בעוד %1$d שניות...</string>
+    <string name="sos_cancel">בטל</string>
+    <string name="sos_dispatching">שולח התראת חירום</string>
+    <string name="sos_sent">ההתראה נשלחה</string>
+    <string name="sos_queued">ההתראה תישלח כשהאינטרנט יחזור</string>
+    <string name="sos_initializing">מאתחל...</string>
+    <string name="sos_notification_title">התראת חירום פעילה</string>
+    <string name="sos_notification_text">ספירה לאחור פעילה</string>
+    <string name="cd_sos_cancel">בטל שליחת התראת חירום</string>
+
+    <string name="checkin_question">איך אתה מרגיש היום?</string>
+    <string name="checkin_time_left_template">נשאר: %1$d:%2$02d</string>
+    <string name="cd_checkin_sad">אני מרגיש עצוב</string>
+    <string name="cd_checkin_neutral">אני מרגיש רגיל</string>
+    <string name="cd_checkin_happy">אני מרגיש טוב</string>
+
+    <string name="medication_loading">טוען...</string>
+    <string name="cd_medication_taken">אישור נטילת תרופה</string>
+    <string name="medication_notification_title">תזכורת תרופה</string>
+    <string name="medication_notification_text">ספירה לאחור פעילה</string>
+    <string name="time_left_template">נשאר: %1$d:%2$02d</string>
+
+    <string name="fall_detected_title">זוהתה נפילה!</string>
+    <string name="fall_countdown_template">שולח התראה בעוד %1$d שניות</string>
+    <string name="fall_im_ok">אני בסדר</string>
+    <string name="fall_cancelled">סומן כהתראת שווא</string>
+    <string name="fall_alert_sent">התראה נשלחה</string>
+    <string name="fall_notification_title">ניטור נפילה פעיל</string>
+    <string name="fall_notification_text">מערכת זיהוי נפילות פועלת ברקע</string>
+    <string name="cd_fall_cancel">ביטול</string>
+</resources>
