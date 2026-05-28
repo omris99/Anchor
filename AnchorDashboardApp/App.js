@@ -10,13 +10,6 @@ import RegisterScreen from './ui/Screens/RegisterScreen';
 import ConfirmSignUpScreen from "./ui/Screens/ConfirmSignUpScreen";
 import HomeScreen from "./ui/Screens/HomeScreen";
 import MedicationRemindersScreen from "./ui/Screens/MedicationRemindersScreen";
-import HealthDataScreen from "./ui/Screens/HealthDataScreen";
-import DailyReportsScreen from "./ui/Screens/DailyReportsScreen";
-import EmergencyHistoryScreen from "./ui/Screens/EmergencyHistoryScreen";
-import EmergencyEventScreen from "./ui/Screens/EmergencyEventScreen";
-import PreferencesScreen from "./ui/Screens/PreferencesScreen";
-import LinkManagementScreen from "./ui/Screens/LinkManagementScreen";
-import WatchPairingScreen from "./ui/Screens/WatchPairingScreen";
 
 Amplify.configure(awsAuthConfig);
 
@@ -53,42 +46,7 @@ export default function App() {
                         <Stack.Screen
                             name="medication-reminders"
                             component={MedicationRemindersScreen}
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="medical-data"
-                            component={HealthDataScreen}
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="daily-reports"
-                            component={DailyReportsScreen}
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="emergency-history"
-                            component={EmergencyHistoryScreen}
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="emergency-event"
-                            component={EmergencyEventScreen}
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="preferences"
-                            component={PreferencesScreen}
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="connections"
-                            component={LinkManagementScreen}
-                            options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                            name="watch-pairing"
-                            component={WatchPairingScreen}
-                            options={{ headerShown: false }}
+                            options={{ title: 'תזכורות לתרופות', headerBackTitle: 'חזרה' }}
                         />
                     </Stack.Navigator>
                 </NavigationContainer>

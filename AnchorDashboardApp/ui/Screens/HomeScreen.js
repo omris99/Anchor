@@ -29,14 +29,14 @@ export default function HomeScreen({ navigation }) {
                     buttonStyle={styles.mainButton}
                     onPress={() => navigation.navigate('medical-data')}
                 >
-                    ניטור נתונים רפואיים
+                    נתונים רפואיים
                 </ClassicButton>
 
                 <ClassicButton
                     buttonStyle={styles.mainButton}
                     onPress={() => navigation.navigate('daily-reports')}
                 >
-                    היסטוריית דיווחים יומיים
+                    דיווחים יומיים
                 </ClassicButton>
 
                 <ClassicButton
@@ -50,20 +50,11 @@ export default function HomeScreen({ navigation }) {
                     buttonStyle={styles.mainButton}
                     onPress={() => navigation.navigate('connections')}
                 >
-                    ניהול קישורים
-                </ClassicButton>
-
-                <ClassicButton
-                    buttonStyle={styles.mainButton}
-                    onPress={() => navigation.navigate('emergency-history')}
-                >
-                    היסטוריית אירועי חירום
                 </ClassicButton>
 
                 <ClassicButton
                     buttonStyle={styles.settingsButton}
                     textStyle={styles.settingsText}
-                    onPress={() => navigation.navigate('preferences')}
                 >
                     העדפות
                 </ClassicButton>
@@ -118,8 +109,6 @@ const styles = StyleSheet.create({
         height: 56,
         borderRadius: 14,
         marginTop: 50,
-        backgroundColor: '#487dbe',
-        borderColor: '#4875be',
     },
     settingsText: {
         color: '#fff',
