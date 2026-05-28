@@ -51,6 +51,12 @@
             </intent-filter>
         </activity>
 
+        <!-- First-launch language picker (com.anchor.watch.*) -->
+        <activity
+            android:name="com.anchor.watch.LanguageSelectionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Anchor" />
+
         <!-- SOURCE lockscreen activities (com.anchor.watch.*) -->
         <activity
             android:name="com.anchor.watch.CheckInActivity"

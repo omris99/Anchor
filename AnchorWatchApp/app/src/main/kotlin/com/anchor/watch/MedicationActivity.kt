@@ -8,7 +8,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import com.anchor.watch.data.local.MedicationLocalStore
 import com.anchor.watch.screens.MedicationReminderScreen
 import com.anchor.watch.services.MedicationAlarmService
@@ -43,8 +42,9 @@ class MedicationActivity : ComponentActivity() {
 
         val store = MedicationLocalStore(applicationContext)
 
+        val layoutDirection = LocaleHelper.layoutDirection(this)
         setContent {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 MedicationReminderScreen(
                     store = store,
                     medicationId = medicationId,

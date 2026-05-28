@@ -8,7 +8,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import com.anchor.watch.data.CheckInRepository
 import com.anchor.watch.data.local.CheckInLocalStore
 import com.anchor.watch.network.PartnerApi
@@ -44,8 +43,9 @@ class CheckInActivity : ComponentActivity() {
             onQueueForRetry = { CheckInSyncWorker.enqueue(applicationContext) },
         )
 
+        val layoutDirection = LocaleHelper.layoutDirection(this)
         setContent {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 DailyCheckInScreen(
                     repository = repository,
                     onFinished = { finish() },

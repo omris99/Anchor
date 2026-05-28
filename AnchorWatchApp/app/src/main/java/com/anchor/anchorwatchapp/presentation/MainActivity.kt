@@ -18,6 +18,7 @@
 package com.anchor.anchorwatchapp.presentation
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,10 +27,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
+import com.anchor.watch.LanguageSelectionActivity
 import com.anchor.watch.screens.MainWatchScreen
 import com.anchor.watch.screens.SosScreen
 import com.anchor.watch.services.FallDetectionService
+import com.anchor.watch.utils.LanguagePreference
 import com.anchor.watch.utils.LocaleHelper
 
 class MainActivity : ComponentActivity() {
@@ -47,9 +49,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (!LanguagePreference.isConfigured(this)) {
+            val intent = Intent(this, LanguageSelectionActivity::class.java).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK,
+                )
+            }
+            startActivity(intent)
+            finish()
+            return
+        }
+
         FallDetectionService.start(applicationContext)
+        val layoutDirection = LocaleHelper.layoutDirection(this)
         setContent {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 when (screen) {
                     Screen.Main -> MainWatchScreen(
                         isAmbient = false,
