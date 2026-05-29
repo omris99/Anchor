@@ -43,7 +43,7 @@ export default function App() {
                         <Stack.Screen
                             name="ConfirmSignUp"
                             component={ConfirmSignUpScreen}
-                            options={{ title: 'אימות הרשמה' }}
+                            options={{ headerShown: false }}
                         />
                         <Stack.Screen
                             name="main-tabs"
