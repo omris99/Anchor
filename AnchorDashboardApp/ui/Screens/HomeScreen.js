@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
 import ClassicButton from '../components/ClassicButton';
-import { UserContext } from '../../App';
+import { UserContext } from '../../logic/contexts/UserContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen({ navigation }) {

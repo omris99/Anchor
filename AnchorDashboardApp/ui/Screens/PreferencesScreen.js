@@ -15,7 +15,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { signOut } from 'aws-amplify/auth';
-import { UserContext } from '../../App';
+import { UserContext } from '../../logic/contexts/UserContext';
 import { logoutUser } from '../../logic/services/authentication/LoginService';
 import TextInputField from '../components/TextInputField';
 import ClassicButton from '../components/ClassicButton';

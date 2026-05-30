@@ -2,9 +2,10 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createContext, useState } from "react";
+import { useState } from "react";
 import { Amplify } from "aws-amplify";
 import { awsAuthConfig } from "./config/awsAuthConfig";
+import { UserContext } from "./logic/contexts/UserContext";
 import WelcomeScreen from './ui/Screens/WelcomeScreen';
 import RegisterScreen from './ui/Screens/RegisterScreen';
 import ConfirmSignUpScreen from "./ui/Screens/ConfirmSignUpScreen";
@@ -20,7 +21,6 @@ import WatchPairingScreen from "./ui/Screens/WatchPairingScreen";
 
 Amplify.configure(awsAuthConfig);
 
-export const UserContext = createContext(null);
 const Stack = createNativeStackNavigator();
 
 export default function App() {

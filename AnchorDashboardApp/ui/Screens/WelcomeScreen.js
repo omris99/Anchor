@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import ClassicButton from "../components/ClassicButton";
 import TextInputField from "../components/TextInputField";
-import {UserContext} from "../../App";
+import {UserContext} from "../../logic/contexts/UserContext";
 import {loadSavedCredentials, loginUser} from "../../logic/services/authentication/LoginService";
 
 export default function WelcomeScreen({ navigation }) {

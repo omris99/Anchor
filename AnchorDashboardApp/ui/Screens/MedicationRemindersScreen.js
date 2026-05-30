@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ClassicButton from '../components/ClassicButton';
 import TextInputField from '../components/TextInputField';
 import DaySelector, { DAY_NAMES } from '../components/DaySelector';
-import { UserContext } from '../../App';
+import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 
 function formatTime(date) {

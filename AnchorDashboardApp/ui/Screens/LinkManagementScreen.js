@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TextInputField from '../components/TextInputField';
 import ClassicButton from '../components/ClassicButton';
-import { UserContext } from '../../App';
+import { UserContext } from '../../logic/contexts/UserContext';
 
 const MOCK_LINK_REQUESTS = [
     { id: '1', fullName: 'דניאל הרשקו', phone: '050-1234567' },
