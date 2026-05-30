@@ -29,7 +29,8 @@
           "icon": "./ui/assets/notification-icon.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
