@@ -87,6 +87,16 @@ keeps `react-native-screens`, `react-native-safe-area-context`, `@react-native-c
 and friends pinned to the binaries baked into Expo Go. If it reports changes, let it apply
 them, then commit the updated `package.json` / `package-lock.json`.
 
+> **If `npm install` fails with `ERESOLVE` / a peer-dependency conflict**, your `node_modules`
+> has drifted off the committed lockfile. Do a clean install instead of fighting it:
+> ```bash
+> rm -rf node_modules package-lock.json
+> npm install
+> ```
+> Then re-run `npx expo install --fix`. (The lockfile in the repo is already conflict-free —
+> a clean install reproduces it exactly. Avoid `--force` / `--legacy-peer-deps`; they paper
+> over real RN-version conflicts and can install a broken tree.)
+
 ---
 
 ## 6. Run the Dashboard against your phone
@@ -111,6 +121,7 @@ load to the Welcome screen with no native crash.
 | First `--tunnel` run asks to install `@expo/ngrok` | Accept the prompt (or `npm i -g @expo/ngrok`), then re-run. |
 | Bundler shows a `Require cycle:` warning | A screen imports from `App.js`; import shared state from `logic/contexts/` instead. |
 | Dependency-version mismatch warnings in the bundler | Re-run `npx expo install --fix` and commit the result. |
+| `npm install` aborts with `ERESOLVE could not resolve` | `node_modules` drifted — `rm -rf node_modules package-lock.json && npm install`. Don't use `--force`/`--legacy-peer-deps`. |
 | Native `String cannot be cast to Boolean` crash | A native module drifted off the SDK-54 version — `npx expo install --fix`; keep New Architecture on. |
 | Stale/odd bundle after editing | Restart with `npx expo start -c`. |
 | Expo Go shows "incompatible SDK" | Your Expo Go build doesn't match SDK 54 — install the matching Expo Go version. |
