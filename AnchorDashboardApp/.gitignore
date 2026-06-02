@@ -31,7 +31,10 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+# ...but keep the committed template (overrides the repo-root .env.* rule)
+!.env.example
 
 # typescript
 *.tsbuildinfo

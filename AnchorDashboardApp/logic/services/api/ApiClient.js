@@ -1,6 +1,5 @@
 import {fetchAuthSession} from "aws-amplify/auth";
-
-const API_BASE_URL = "https://u7cxnohim6.execute-api.us-east-1.amazonaws.com";
+import {API_BASE_URL} from "../../../config/env";
 
 export async function apiRequest(path, options = {}) {
     let token;
