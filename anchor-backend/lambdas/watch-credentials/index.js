@@ -4,15 +4,23 @@
 // The watch calls this every few seconds after displaying its QR code,
 // waiting for the dashboard user to complete pairing via POST /users/{id}/watch/pair.
 // Returns 404 until pairing is done, then returns the permanent watch_api_key.
+//
+// Lookup uses the watch_id-index GSI (Query), NOT a table Scan. The previous Scan
+// passed `Limit: 1`, which caps the number of rows DynamoDB *evaluates* before the
+// FilterExpression runs — so it inspected one arbitrary row and returned 404 once
+// Anchor_Users held more than one item, even after a successful pair. That left the
+// watch stuck polling forever. A Query on the GSI resolves the exact row directly.
+// (Create the index first with scripts/add-watch-id-gsi.sh, then deploy this handler.)
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, QueryCommand } = require("@aws-sdk/lib-dynamodb");
 
 const ddb = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" })
 );
 
 const USERS_TABLE = process.env.USERS_TABLE || "Anchor_Users";
+const WATCH_ID_INDEX = process.env.WATCH_ID_INDEX || "watch_id-index";
 
 exports.handler = async (event) => {
   const watchId = event?.queryStringParameters?.watch_id;
@@ -21,14 +29,17 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Scan for a user row that has been stamped with this watch_id and already has a key.
-    // At MVP scale a GSI on watch_id would replace this Scan.
-    const result = await ddb.send(new ScanCommand({
+    // Query the GSI for the user row stamped with this watch_id. The transient
+    // pairing row shares the same watch_id but has no watch_api_key, so the filter
+    // keeps only the paired user row. watch_id is unique per pairing session, so
+    // the query returns at most one match — no Limit needed.
+    const result = await ddb.send(new QueryCommand({
       TableName: USERS_TABLE,
-      FilterExpression: "watch_id = :w AND attribute_exists(watch_api_key)",
+      IndexName: WATCH_ID_INDEX,
+      KeyConditionExpression: "watch_id = :w",
+      FilterExpression: "attribute_exists(watch_api_key)",
       ExpressionAttributeValues: { ":w": watchId },
       ProjectionExpression: "id, watch_api_key",
-      Limit: 1,
     }));
 
     if (!result.Items?.length) {

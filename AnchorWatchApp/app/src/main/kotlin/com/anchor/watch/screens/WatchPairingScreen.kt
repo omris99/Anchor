@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Text
+import com.anchor.watch.network.CredentialsPollResult
 import com.anchor.watch.network.PartnerPairingApi
 import com.anchor.watch.network.WatchKeyStore
 import com.google.zxing.BarcodeFormat
@@ -60,19 +61,26 @@ fun WatchPairingScreen(
     // Step 2: once we have a watch_id, poll for the permanent API key.
     LaunchedEffect(watchId) {
         val id = watchId ?: return@LaunchedEffect
+        var sawError = false
         repeat(POLL_MAX_ATTEMPTS) {
             delay(POLL_INTERVAL_MS)
-            val credentials = pairingApi.fetchCredentials(id)
-            if (credentials != null) {
-                watchKeyStore.savePairingResult(
-                    apiKey = credentials.watch_api_key,
-                    userId = credentials.user_id,
-                )
-                onPaired()
-                return@LaunchedEffect
+            when (val outcome = pairingApi.fetchCredentials(id)) {
+                is CredentialsPollResult.Paired -> {
+                    watchKeyStore.savePairingResult(
+                        apiKey = outcome.apiKey,
+                        userId = outcome.userId,
+                    )
+                    onPaired()
+                    return@LaunchedEffect
+                }
+                // 404: dashboard hasn't paired yet — keep the QR up and keep polling.
+                CredentialsPollResult.NotPairedYet -> Unit
+                // Transient network/server error (already logged): keep the QR visible
+                // and keep polling, but remember it so the timeout message is accurate.
+                is CredentialsPollResult.Failed -> sawError = true
             }
         }
-        errorMessage = "פג תוקף הקישור\nנסה שוב"
+        errorMessage = if (sawError) "בעיית חיבור\nנסה שוב" else "פג תוקף הקישור\nנסה שוב"
     }
 
     Column(

@@ -17,13 +17,24 @@ sleep 5
 echo "Creating Anchor DynamoDB tables..."
 
 # Anchor_Users
+#   GSI watch_id-index: lets GET /watch/credentials Query a user by watch_id while the
+#   watch polls during pairing, instead of Scanning. Sparse (only watch-bearing rows are
+#   indexed) and projects watch_api_key so the poll reads the key straight from the index.
+#   NOTE: to add this index to an already-deployed table without data loss, use
+#   scripts/add-watch-id-gsi.sh instead of re-running this (destructive) script.
 aws dynamodb create-table \
   --table-name ${PREFIX}Users \
   --attribute-definitions \
     AttributeName=id,AttributeType=S \
+    AttributeName=watch_id,AttributeType=S \
   --key-schema \
     AttributeName=id,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
+  --global-secondary-indexes '[{
+    "IndexName": "watch_id-index",
+    "KeySchema": [{"AttributeName":"watch_id","KeyType":"HASH"}],
+    "Projection": {"ProjectionType":"INCLUDE","NonKeyAttributes":["watch_api_key"]}
+  }]' \
   --profile $PROFILE --region $REGION \
   --query 'TableDescription.TableName' --output text
 

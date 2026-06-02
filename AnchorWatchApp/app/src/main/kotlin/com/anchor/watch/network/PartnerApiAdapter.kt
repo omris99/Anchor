@@ -1,6 +1,7 @@
 package com.anchor.watch.network
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -14,6 +15,7 @@ import com.anchor.watch.services.EmergencyApi
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -295,34 +297,85 @@ internal class PartnerCheckInApi(
         }
 }
 
+private const val PAIRING_LOG_TAG = "PartnerPairing"
+
 /**
- * Pairing helper. Not a SOURCE interface — wired in by future PairingScreen.
+ * Outcome of a single GET /watch/credentials poll. Lets the caller tell apart
+ * "dashboard hasn't paired yet" (backend 404 — keep polling quietly) from a real
+ * network/server/parse failure (logged, surfaced) instead of collapsing both to null,
+ * which previously made a backend outage look identical to a normal "not yet" wait.
+ */
+sealed interface CredentialsPollResult {
+    /** Dashboard completed pairing; the watch now has its permanent key + user id. */
+    data class Paired(val apiKey: String, val userId: String) : CredentialsPollResult
+    /** Backend returned 404 — pairing not done yet. Keep polling. */
+    data object NotPairedYet : CredentialsPollResult
+    /** Network error, non-404 HTTP, or unparseable body. Already logged; poll continues. */
+    data class Failed(val reason: String) : CredentialsPollResult
+}
+
+/**
+ * Pairing helper. Not a SOURCE interface — wired in by the PairingScreen.
  * Returns the temporary pairing token the watch displays as a QR for the elder
  * to scan in the dashboard, completing pairing via /users/{id}/watch/pair.
  */
 class PartnerPairingApi internal constructor(
     private val service: PartnerPairingService,
 ) {
-    /** Fetches a 5-minute pairing token (DECISIONS.md §2). Returns null on failure. */
+    /** Fetches a 5-minute pairing token (DECISIONS.md §2). Returns null on failure (logged). */
     internal suspend fun initPairing(): InitPairingResponseDto? =
         withContext(Dispatchers.IO) {
-            runCatching {
+            try {
                 val response = service.initPairing()
-                if (response.isSuccessful) response.body() else null
-            }.getOrNull()
+                if (response.isSuccessful) {
+                    response.body()
+                } else {
+                    Log.w(PAIRING_LOG_TAG, "init-pairing failed: HTTP ${response.code()}")
+                    null
+                }
+            } catch (e: CancellationException) {
+                throw e // never swallow cancellation — let the coroutine stop cleanly
+            } catch (e: Exception) {
+                Log.w(PAIRING_LOG_TAG, "init-pairing failed", e)
+                null
+            }
         }
 
     /**
      * Polls the backend for the permanent watch_api_key by watch_id.
-     * Returns null when not paired yet (404) or on network error.
-     * Returns [PairingResultDto] once the dashboard has completed pairing.
+     *  - 200            → [CredentialsPollResult.Paired]
+     *  - 404            → [CredentialsPollResult.NotPairedYet]  (keep polling)
+     *  - other / throws → [CredentialsPollResult.Failed]        (logged; keep polling)
+     *
+     * [CancellationException] is rethrown so the polling coroutine can be cancelled
+     * normally when the pairing screen leaves the composition.
      */
-    internal suspend fun fetchCredentials(watchId: String): PairingResultDto? =
+    internal suspend fun fetchCredentials(watchId: String): CredentialsPollResult =
         withContext(Dispatchers.IO) {
-            runCatching {
+            try {
                 val response = service.fetchCredentials(watchId)
-                if (response.isSuccessful) response.body() else null
-            }.getOrNull()
+                when {
+                    response.isSuccessful -> {
+                        val body = response.body()
+                        if (body != null) {
+                            CredentialsPollResult.Paired(body.watch_api_key, body.user_id)
+                        } else {
+                            Log.w(PAIRING_LOG_TAG, "credentials ${response.code()} had empty body")
+                            CredentialsPollResult.Failed("empty body (HTTP ${response.code()})")
+                        }
+                    }
+                    response.code() == 404 -> CredentialsPollResult.NotPairedYet
+                    else -> {
+                        Log.w(PAIRING_LOG_TAG, "credentials poll: unexpected HTTP ${response.code()}")
+                        CredentialsPollResult.Failed("HTTP ${response.code()}")
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(PAIRING_LOG_TAG, "credentials poll failed", e)
+                CredentialsPollResult.Failed(e.message ?: e.javaClass.simpleName)
+            }
         }
 }
 
