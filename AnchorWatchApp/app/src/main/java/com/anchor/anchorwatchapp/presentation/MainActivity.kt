@@ -87,7 +87,13 @@ class MainActivity : ComponentActivity() {
                     Screen.Pairing -> WatchPairingScreen(
                         pairingApi = PartnerApi.pairing(applicationContext),
                         watchKeyStore = WatchKeyStore.get(applicationContext),
-                        onPaired = { screen = Screen.Main },
+                        onPaired = {
+                            screen = Screen.Main
+                            lifecycleScope.launch {
+                                runCatching { MedicationScheduler.syncAndReschedule(applicationContext) }
+                                MedicationSyncWorker.enqueuePeriodic(applicationContext)
+                            }
+                        },
                     )
 
                     Screen.Main -> MainWatchScreen(

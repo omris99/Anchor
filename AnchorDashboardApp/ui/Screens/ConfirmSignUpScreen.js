@@ -3,7 +3,7 @@ import {ActivityIndicator, Alert, StyleSheet, Text, TextInput, View} from "react
 import ClassicButton from "../components/ClassicButton";
 import {confirmRegistration, resendCode} from "../../logic/services/authentication/ConfirmSignUpService";
 import {loginUser} from "../../logic/services/authentication/LoginService";
-import {UserContext} from "../../App";
+import {UserContext} from "../../logic/contexts/UserContext";
 
 export default function ConfirmSignUpScreen({ route, navigation }) {
     const [code, setCode] = useState("");
