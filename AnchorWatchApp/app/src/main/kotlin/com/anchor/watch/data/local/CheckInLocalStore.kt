@@ -15,6 +15,8 @@ data class CheckInEntity(
     val userId: String,
     val status: String,
     val isSynced: Boolean,
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
 @Dao

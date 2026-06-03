@@ -6,6 +6,7 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   PutCommand,
+  UpdateCommand,
   ScanCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
@@ -34,7 +35,7 @@ exports.handler = async (event) => {
     return reply(400, { error: "Invalid JSON body" });
   }
 
-  const { event_id, status, timestamp } = body;
+  const { event_id, status, timestamp, lat, lng, battery_percent } = body;
   if (!status) {
     return reply(400, { error: "Missing required field: status" });
   }
@@ -45,19 +46,25 @@ exports.handler = async (event) => {
   const ts = new Date(timestamp || Date.now()).toISOString();
   const id = event_id || `${userId}#${ts}`;
 
-  try {
-    await ddb.send(new PutCommand({
-      TableName: CHECKINS_TABLE,
-      Item: {
-        user_id: userId,
-        timestamp: ts,
-        id,
-        status,
-        event_id: id,
-      },
-    }));
+  // Use UpdateCommand so retries (which send lat/lng=null) don't overwrite
+  // real location data written by the original submission.
+  let updateExpr = "SET #s = :status, id = :id, event_id = :eid";
+  const exprNames  = { "#s": "status" };
+  const exprValues = { ":status": status, ":id": id, ":eid": id };
 
-    return reply(201, { id, status, timestamp: ts });
+  if (lat != null)             { updateExpr += ", lat = :lat";  exprValues[":lat"] = lat; }
+  if (lng != null)             { updateExpr += ", lng = :lng";  exprValues[":lng"] = lng; }
+  if (battery_percent != null) { updateExpr += ", battery_percent = :bp"; exprValues[":bp"] = battery_percent; }
+
+  try {
+    await ddb.send(new UpdateCommand({
+      TableName: CHECKINS_TABLE,
+      Key: { user_id: userId, timestamp: ts },
+      UpdateExpression: updateExpr,
+      ExpressionAttributeNames: exprNames,
+      ExpressionAttributeValues: exprValues,
+    }));
+    return reply(201, { id, status, timestamp: ts, lat, lng, battery_percent });
   } catch (err) {
     return reply(500, { error: err.message });
   }

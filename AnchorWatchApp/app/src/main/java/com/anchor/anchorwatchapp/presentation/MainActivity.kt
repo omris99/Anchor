@@ -17,10 +17,13 @@
 
 package com.anchor.anchorwatchapp.presentation
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +45,9 @@ import com.anchor.watch.utils.LocaleHelper
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    private val requestLocationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
 
     private sealed interface Screen {
         data object Loading : Screen
@@ -77,6 +83,10 @@ class MainActivity : ComponentActivity() {
                 // Register FCM token in case onNewToken fired before pairing completed.
                 runCatching { WatchFcmService.registerSavedTokenIfPaired(applicationContext) }
             }
+        }
+
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestLocationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
         FallDetectionService.start(applicationContext)

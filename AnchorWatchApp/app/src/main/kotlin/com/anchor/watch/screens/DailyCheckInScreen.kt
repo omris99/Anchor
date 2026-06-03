@@ -37,6 +37,7 @@ import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Scaffold
 import androidx.wear.compose.material.Text
 import com.anchor.watch.R
+import com.anchor.watch.data.CheckInContext
 import com.anchor.watch.data.CheckInRepository
 import com.anchor.watch.data.CheckInStatus
 import com.anchor.watch.utils.TimeoutManager
@@ -45,6 +46,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DailyCheckInScreen(
     repository: CheckInRepository,
+    contextProvider: () -> CheckInContext = { CheckInContext() },
     timeoutManager: TimeoutManager = remember { TimeoutManager() },
     onFinished: () -> Unit,
 ) {
@@ -61,7 +63,7 @@ fun DailyCheckInScreen(
                 if (!submitted) {
                     submitted = true
                     scope.launch {
-                        repository.submit(CheckInStatus.NoResponse)
+                        repository.submit(CheckInStatus.NoResponse, contextProvider())
                         onFinished()
                     }
                 }
@@ -74,7 +76,9 @@ fun DailyCheckInScreen(
             submitted = true
             timeoutManager.stop()
             scope.launch {
-                repository.submit(status)
+                val ctx = contextProvider()
+                android.util.Log.d("DailyCheckInScreen", "submit ctx: lat=${ctx.lat} lng=${ctx.lng} battery=${ctx.batteryPercent}")
+                repository.submit(status, ctx)
                 onFinished()
             }
         }

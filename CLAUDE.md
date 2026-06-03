@@ -42,8 +42,10 @@
 ## ארכיטקטורה — נקודות מפתח
 - **שעון** מזדהה עם API Key (לא JWT) — header: `X-Watch-Key`
 - **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי כשנוצרת תרופה חדשה
-- **Push notifications** — FCM: silent push לשעון (medication sync), push רגיל לדאשבורד (emergency)
+- **Push notifications** — FCM: שני סוגי silent push לשעון: `medication_sync` (סנכרון תרופות), `request_checkin` (פותח `CheckInActivity`). Push רגיל לדאשבורד על emergency
 - **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
+- **CheckInContext** — DTO (lat, lng, batteryPercent) שנשלח עם כל check-in מהשעון. מוסיפים שדות עתידיים רק כאן (לא ב-`CheckInEntity` שב-Room)
+- **Checkins Lambda** — משתמש ב-`UpdateCommand` (לא `PutCommand`) כדי שretry ריק לא יחליף location אמיתי
 - **Daily Report** — חישוב בזמן אמת + OpenAI API לניתוח
 - **Watch Pairing** — QR code על השעון, הקשיש סורק מהדאשבורד
 - **Family Linking** — הזנת מספר טלפון + אישור הקשיש
@@ -52,7 +54,8 @@
 ## מה כבר בנוי (endpoints)
 - Auth: register, login, confirm, verify-mfa ✅
 - Watch: init-pairing, pair, credentials, fcm-token ✅
-- Checkins: POST /checkins, GET /users/{id}/checkins ✅
+- Checkins: POST /checkins (שומר lat/lng/battery_percent), GET /users/{id}/checkins ✅
+- Checkins request: POST /users/{id}/checkins/request (JWT — שולח FCM request_checkin לשעון) ✅
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
 - Medication reminders: GET /medication-reminders/{userId}, confirm, missed (watch) ✅
 - Emergency: POST /emergency, POST /emergency/{id}/acknowledge ✅
@@ -61,3 +64,6 @@
 1. `/users/{id}/family/request`, `/users/{id}/family/approve`
 2. `/users/{id}/reports` (+ OpenAI)
 3. FCM push לדאשבורד על emergency
+
+## cleanup נדרש לפני production
+- הסרת debug logs מ-`CheckInActivity.kt`, `DailyCheckInScreen.kt`, `PartnerApiAdapter.kt`

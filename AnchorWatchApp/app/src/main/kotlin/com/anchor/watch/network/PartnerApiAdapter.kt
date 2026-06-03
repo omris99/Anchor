@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.anchor.watch.data.CheckInApi
+import com.anchor.watch.data.CheckInContext
 import com.anchor.watch.data.MedicationApi
 import com.anchor.watch.data.local.CheckInEntity
 import com.anchor.watch.data.local.EmergencyEventEntity
@@ -192,6 +193,9 @@ internal data class CheckInRequestDto(
     val user_id: String,
     val status: String,
     val timestamp: Long,
+    val lat: Double?,
+    val lng: Double?,
+    val battery_percent: Int?,
 )
 
 @JsonClass(generateAdapter = true)
@@ -302,17 +306,24 @@ internal class PartnerMedicationApi(
 internal class PartnerCheckInApi(
     private val service: PartnerCheckInService,
 ) : CheckInApi {
-    override suspend fun submit(entity: CheckInEntity): Boolean =
+    override suspend fun submit(entity: CheckInEntity, context: CheckInContext): Boolean =
         withContext(Dispatchers.IO) {
+            android.util.Log.d("PartnerCheckInApi", "submit: lat=${context.lat} lng=${context.lng} battery=${context.batteryPercent} status=${entity.status}")
             runCatching {
-                service.submit(
-                    CheckInRequestDto(
-                        event_id = entity.id,
-                        user_id = entity.userId,
-                        status = entity.status,
-                        timestamp = entity.timestamp,
-                    )
-                ).isSuccessful
+                val dto = CheckInRequestDto(
+                    event_id = entity.id,
+                    user_id = entity.userId,
+                    status = entity.status,
+                    timestamp = entity.timestamp,
+                    lat = context.lat,
+                    lng = context.lng,
+                    battery_percent = context.batteryPercent,
+                )
+                val response = service.submit(dto)
+                android.util.Log.d("PartnerCheckInApi", "response: ${response.code()} success=${response.isSuccessful}")
+                response.isSuccessful
+            }.onFailure {
+                android.util.Log.e("PartnerCheckInApi", "submit failed", it)
             }.getOrDefault(false)
         }
 }

@@ -70,8 +70,10 @@ function checkinToReport(checkin, index) {
         medicationsTaken: [],
         medicationsPending: [],
         generalFeelingEmoji: STATUS_EMOJI[checkin.status] ?? '—',
-        batteryPercent: null,
-        location: null,
+        batteryPercent: checkin.battery_percent ?? null,
+        location: checkin.lat != null && checkin.lng != null
+            ? { lat: checkin.lat, lng: checkin.lng }
+            : null,
     };
 }
 
@@ -151,7 +153,7 @@ export default function DailyReportsScreen({ navigation }) {
         apiRequest(`/users/${user.userId}/checkins`)
             .then(data => {
                 const real = (data.checkins ?? []).map(checkinToReport);
-                if (real.length > 0) setReports(real);
+                if (real.length > 0) setReports([...real, ...MOCK_REPORTS]);
             })
             .catch(() => {}); // keep mock data on error
         return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };

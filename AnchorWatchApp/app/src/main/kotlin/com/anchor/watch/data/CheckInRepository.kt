@@ -22,12 +22,19 @@ sealed class CheckInResult {
     data object Queued : CheckInResult()
 }
 
+/** Contextual watch data attached to every check-in (grows over time). */
+data class CheckInContext(
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val batteryPercent: Int? = null,
+)
+
 interface CheckInApi {
-    suspend fun submit(entity: CheckInEntity): Boolean
+    suspend fun submit(entity: CheckInEntity, context: CheckInContext): Boolean
 }
 
 object UnreachableCheckInApi : CheckInApi {
-    override suspend fun submit(entity: CheckInEntity): Boolean = false
+    override suspend fun submit(entity: CheckInEntity, context: CheckInContext): Boolean = false
 }
 
 class CheckInRepository(
@@ -38,7 +45,7 @@ class CheckInRepository(
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
     private val userIdProvider: () -> String = { "self" },
 ) {
-    suspend fun submit(status: CheckInStatus): CheckInResult {
+    suspend fun submit(status: CheckInStatus, context: CheckInContext = CheckInContext()): CheckInResult {
         val entity = CheckInEntity(
             id = idGenerator(),
             timestamp = clock(),
@@ -49,7 +56,7 @@ class CheckInRepository(
         withContext(NonCancellable) {
             store.save(entity)
         }
-        val ok = runCatching { api.submit(entity) }.getOrDefault(false)
+        val ok = runCatching { api.submit(entity, context) }.getOrDefault(false)
         return if (ok) {
             withContext(NonCancellable) { store.markSynced(entity.id) }
             CheckInResult.Sent
