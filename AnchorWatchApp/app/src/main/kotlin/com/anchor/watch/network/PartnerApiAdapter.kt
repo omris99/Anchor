@@ -107,6 +107,18 @@ object PartnerApi {
     /** Pairing helper (no SOURCE interface — invoked by a future PairingScreen). */
     fun pairing(context: Context): PartnerPairingApi =
         PartnerPairingApi(retrofit(context).create(PartnerPairingService::class.java))
+
+    /** Registers the FCM token with the backend so it can push medication sync messages. */
+    suspend fun registerFcmToken(context: Context, token: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                retrofit(context)
+                    .create(PartnerFcmService::class.java)
+                    .registerFcmToken(FcmTokenDto(token))
+                    .isSuccessful
+            }.getOrDefault(false)
+        }
+    }
 }
 
 // ───────────────────────── Retrofit service interfaces ──────────────────────────
@@ -139,6 +151,11 @@ internal interface PartnerMedicationService {
 internal interface PartnerCheckInService {
     @POST("checkins")
     suspend fun submit(@Body body: CheckInRequestDto): retrofit2.Response<CheckInResponseDto>
+}
+
+internal interface PartnerFcmService {
+    @POST("watch/fcm-token")
+    suspend fun registerFcmToken(@Body body: FcmTokenDto): retrofit2.Response<Unit>
 }
 
 internal interface PartnerPairingService {
@@ -203,6 +220,11 @@ internal data class MedicationDto(
 @JsonClass(generateAdapter = true)
 internal data class MedicationStatusDto(
     val timestamp: Long,
+)
+
+@JsonClass(generateAdapter = true)
+internal data class FcmTokenDto(
+    val fcm_token: String,
 )
 
 @JsonClass(generateAdapter = true)

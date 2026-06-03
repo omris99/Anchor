@@ -70,9 +70,13 @@ deploy_lambda "watch-init-pairing" "watch-init-pairing"
 deploy_lambda "watch-pair"         "watch-pair"
 deploy_lambda "watch-credentials"  "watch-credentials"
 
+# Watch FCM token registration
+deploy_lambda "watch-fcm-token" "watch-fcm-token"
+
 # Check-ins
-deploy_lambda "checkins"     "checkins"
-deploy_lambda "checkins-get" "checkins-get"
+deploy_lambda "checkins"         "checkins"
+deploy_lambda "checkins-get"     "checkins-get"
+deploy_lambda "checkins-request" "checkins-request"
 
 # Medication reminders
 deploy_lambda "medication-reminders-get"       "medication-reminders-get"

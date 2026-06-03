@@ -37,9 +37,12 @@ export default function WatchPairingScreen({ navigation }) {
             } else if (err.status === 410) {
                 Alert.alert('קוד QR פג תוקף', 'חזור למסך הקישור בשעון כדי לקבל קוד חדש.');
             } else {
-                Alert.alert('שגיאה', 'לא ניתן לקשר את השעון. ודא שהשעון מחובר לאינטרנט ונסה שוב.');
+                Alert.alert(
+                    'שגיאה',
+                    'לא ניתן לקשר את השעון. ודא שהשעון מחובר לאינטרנט ונסה שוב.',
+                    [{ text: 'נסה שוב', onPress: () => setScanned(false) }]
+                );
             }
-            setScanned(false);
         }
     };
 

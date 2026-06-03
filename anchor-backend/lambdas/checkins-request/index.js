@@ -1,17 +1,10 @@
-// /users/{id}/medication-reminders  (JWT auth — dashboard only)
+// POST /users/{id}/checkins/request  (JWT auth — dashboard only)
 //
-// GET    — fetch all reminders for the user
-// POST   — create a new reminder; sends FCM silent push so the watch syncs immediately
-// DELETE /users/{id}/medication-reminders/{medId} — remove a reminder + FCM push
+// Sends a silent FCM push to the elder's watch asking them to complete
+// a daily check-in. The watch launches CheckInActivity on receipt.
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const {
-  DynamoDBDocumentClient,
-  QueryCommand,
-  GetCommand,
-  PutCommand,
-  DeleteCommand,
-} = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, GetCommand } = require("@aws-sdk/lib-dynamodb");
 const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 const crypto = require("crypto");
 const https = require("https");
@@ -21,132 +14,47 @@ const ddb = DynamoDBDocumentClient.from(
 );
 const ssm = new SSMClient({ region: process.env.AWS_REGION || "us-east-1" });
 
-const MEDS_TABLE  = process.env.MEDS_TABLE  || "Anchor_MedicationReminders";
-const USERS_TABLE = process.env.USERS_TABLE || "Anchor_Users";
+const USERS_TABLE        = process.env.USERS_TABLE        || "Anchor_Users";
 const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "anchor-5998b";
-const SSM_PARAM = process.env.SSM_FIREBASE_PARAM || "/anchor/firebase-service-account";
+const SSM_PARAM          = process.env.SSM_FIREBASE_PARAM  || "/anchor/firebase-service-account";
 
-// Cache the service-account key for the Lambda lifetime (avoid SSM call on every request).
 let cachedServiceAccount = null;
 
 exports.handler = async (event) => {
-  const method = event.requestContext?.http?.method;
   const userId = event.pathParameters?.id;
-
   if (!userId) {
     return reply(400, { error: "Missing user id in path" });
   }
 
-  if (method === "GET") {
-    return handleGet(userId);
-  }
-
-  if (method === "POST") {
-    return handlePost(userId, event.body);
-  }
-
-  if (method === "DELETE") {
-    const medId = event.pathParameters?.medId;
-    return handleDelete(userId, medId);
-  }
-
-  return reply(405, { error: "Method not allowed" });
-};
-
-async function handleGet(userId) {
-  try {
-    const result = await ddb.send(new QueryCommand({
-      TableName: MEDS_TABLE,
-      KeyConditionExpression: "user_id = :u",
-      ExpressionAttributeValues: { ":u": userId },
-    }));
-    return reply(200, { medications: result.Items || [] });
-  } catch (err) {
-    return reply(500, { error: err.message });
-  }
-}
-
-async function handlePost(userId, rawBody) {
-  let body;
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    return reply(400, { error: "Invalid JSON body" });
-  }
-
-  const { medication_name, scheduled_time, days_of_week } = body;
-  if (!medication_name || !scheduled_time) {
-    return reply(400, { error: "Missing required fields: medication_name, scheduled_time" });
-  }
-
-  const item = {
-    user_id: userId,
-    id: crypto.randomUUID(),
-    medication_name,
-    scheduled_time,
-    days_of_week: days_of_week ?? [0, 1, 2, 3, 4, 5, 6],
-    status: "pending",
-    created_at: new Date().toISOString(),
-  };
-
-  try {
-    await ddb.send(new PutCommand({ TableName: MEDS_TABLE, Item: item }));
-    // Best-effort: await so Lambda doesn't freeze before the push completes.
-    try { await sendMedicationSyncPush(userId); } catch {}
-    return reply(201, item);
-  } catch (err) {
-    return reply(500, { error: err.message });
-  }
-}
-
-async function handleDelete(userId, medId) {
-  if (!medId) {
-    return reply(400, { error: "Missing medId in path" });
-  }
-  try {
-    await ddb.send(new DeleteCommand({
-      TableName: MEDS_TABLE,
-      Key: { user_id: userId, id: medId },
-    }));
-    try { await sendMedicationSyncPush(userId); } catch {}
-    return reply(200, { deleted: true });
-  } catch (err) {
-    return reply(500, { error: err.message });
-  }
-}
-
-// ─────────────────────────── FCM silent push ────────────────────────────────
-
-async function sendMedicationSyncPush(userId) {
   const fcmToken = await getWatchFcmToken(userId);
   if (!fcmToken) {
-    console.log(`[FCM] No watch_fcm_token for user ${userId} — skipping push`);
-    return;
+    return reply(404, { error: "Watch not paired or FCM token not registered" });
   }
 
   const accessToken = await getFcmAccessToken();
   if (!accessToken) {
-    console.log("[FCM] Failed to obtain FCM access token");
-    return;
+    return reply(502, { error: "Failed to obtain FCM access token" });
   }
-  console.log(`[FCM] Sending medication_sync push to user ${userId}`);
 
   const message = {
     message: {
       token: fcmToken,
-      data: { type: "medication_sync" },
-      android: {
-        priority: "high",
-      },
+      data: { type: "request_checkin" },
+      android: { priority: "high" },
     },
   };
 
-  await postJson(
-    `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
-    message,
-    { Authorization: `Bearer ${accessToken}` }
-  );
-}
+  try {
+    await postJson(
+      `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
+      message,
+      { Authorization: `Bearer ${accessToken}` }
+    );
+    return reply(200, { sent: true });
+  } catch (err) {
+    return reply(502, { error: err.message });
+  }
+};
 
 async function getWatchFcmToken(userId) {
   const result = await ddb.send(new GetCommand({
@@ -184,7 +92,6 @@ async function getFcmAccessToken() {
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
   const jwt = `${header}.${payload}.${sig}`;
-
   const body = new URLSearchParams({
     grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
     assertion: jwt,

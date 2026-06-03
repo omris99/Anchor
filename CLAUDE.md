@@ -41,15 +41,23 @@
 
 ## ארכיטקטורה — נקודות מפתח
 - **שעון** מזדהה עם API Key (לא JWT) — header: `X-Watch-Key`
-- **תרופות** — לא push לשעון, השעון סנכרן לוקאלית
-- **Push notifications** — AWS SNS + FCM, לדאשבורד בלבד
+- **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי כשנוצרת תרופה חדשה
+- **Push notifications** — FCM: silent push לשעון (medication sync), push רגיל לדאשבורד (emergency)
+- **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
 - **Daily Report** — חישוב בזמן אמת + OpenAI API לניתוח
 - **Watch Pairing** — QR code על השעון, הקשיש סורק מהדאשבורד
 - **Family Linking** — הזנת מספר טלפון + אישור הקשיש
+- **DynamoDB ScanCommand** — אל תוסיף `Limit` ל-Scan+FilterExpression — `Limit` מגביל הערכה לא תוצאות
+
+## מה כבר בנוי (endpoints)
+- Auth: register, login, confirm, verify-mfa ✅
+- Watch: init-pairing, pair, credentials, fcm-token ✅
+- Checkins: POST /checkins, GET /users/{id}/checkins ✅
+- Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
+- Medication reminders: GET /medication-reminders/{userId}, confirm, missed (watch) ✅
+- Emergency: POST /emergency, POST /emergency/{id}/acknowledge ✅
 
 ## סדר endpoints שנשאר לבנות
-1. `/watch/init-pairing`, `/users/{id}/watch/pair`
-2. `/users/{id}/family/request`, `/users/{id}/family/approve`
-3. `/checkins`, `/medication-reminders`
-4. `/users/{id}/reports` (+ OpenAI)
-5. `/emergency` (+ FCM push)
+1. `/users/{id}/family/request`, `/users/{id}/family/approve`
+2. `/users/{id}/reports` (+ OpenAI)
+3. FCM push לדאשבורד על emergency

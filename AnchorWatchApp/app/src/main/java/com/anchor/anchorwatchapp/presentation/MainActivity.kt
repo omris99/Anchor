@@ -36,6 +36,7 @@ import com.anchor.watch.screens.WatchPairingScreen
 import com.anchor.watch.services.FallDetectionService
 import com.anchor.watch.services.MedicationScheduler
 import com.anchor.watch.services.MedicationSyncWorker
+import com.anchor.watch.services.WatchFcmService
 import com.anchor.watch.utils.LanguagePreference
 import com.anchor.watch.utils.LocaleHelper
 import kotlinx.coroutines.launch
@@ -73,6 +74,8 @@ class MainActivity : ComponentActivity() {
                 // fresh in the background. Without this the watch never armed any alarm.
                 runCatching { MedicationScheduler.syncAndReschedule(applicationContext) }
                 MedicationSyncWorker.enqueuePeriodic(applicationContext)
+                // Register FCM token in case onNewToken fired before pairing completed.
+                runCatching { WatchFcmService.registerSavedTokenIfPaired(applicationContext) }
             }
         }
 
@@ -92,6 +95,8 @@ class MainActivity : ComponentActivity() {
                             lifecycleScope.launch {
                                 runCatching { MedicationScheduler.syncAndReschedule(applicationContext) }
                                 MedicationSyncWorker.enqueuePeriodic(applicationContext)
+                                // Token may have been saved before pairing — register it now.
+                                runCatching { WatchFcmService.registerSavedTokenIfPaired(applicationContext) }
                             }
                         },
                     )

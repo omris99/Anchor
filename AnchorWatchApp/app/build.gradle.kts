@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -124,6 +125,10 @@ dependencies {
 
     // --- QR code generation (WatchPairingScreen) ---
     implementation(libs.zxing.core)
+
+    // --- Firebase (FCM silent push for medication sync) ---
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
 
     // --- Unit tests (SOURCE) ---
     testImplementation(libs.junit4)

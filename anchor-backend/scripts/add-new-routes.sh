@@ -53,10 +53,12 @@ add_route() {
 add_route "watch-init-pairing" "POST" "/watch/init-pairing"
 add_route "watch-pair"         "POST" "/users/{id}/watch/pair"
 add_route "watch-credentials"  "GET"  "/watch/credentials"
+add_route "watch-fcm-token"    "POST" "/watch/fcm-token"
 
 # --- Check-ins ---
-add_route "checkins"     "POST" "/checkins"
-add_route "checkins-get" "GET"  "/users/{id}/checkins"
+add_route "checkins"         "POST" "/checkins"
+add_route "checkins-get"     "GET"  "/users/{id}/checkins"
+add_route "checkins-request" "POST" "/users/{id}/checkins/request"
 
 # --- Medication reminders (watch — X-Watch-Key) ---
 add_route "medication-reminders-get"     "GET"  "/medication-reminders/{userId}"
