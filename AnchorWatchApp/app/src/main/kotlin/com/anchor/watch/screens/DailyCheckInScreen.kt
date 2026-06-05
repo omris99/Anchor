@@ -100,7 +100,7 @@ fun DailyCheckInScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(colorResource(R.color.primary)),
+                .background(colorResource(R.color.background)),
             contentAlignment = Alignment.Center,
         ) {
             Column(
@@ -112,21 +112,13 @@ fun DailyCheckInScreen(
             ) {
                 Text(
                     text = stringResource(R.string.checkin_question),
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = colorResource(R.color.text_primary),
                     textAlign = TextAlign.Center,
                 )
 
-                Spacer(Modifier.height(6.dp))
-
-                Text(
-                    text = stringResource(R.string.checkin_time_left_template, minutes, seconds),
-                    fontSize = 18.sp,
-                    color = colorResource(R.color.text_primary),
-                )
-
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -149,6 +141,14 @@ fun DailyCheckInScreen(
                         onClick = { onPick(CheckInStatus.Happy) },
                     )
                 }
+
+                Spacer(Modifier.height(6.dp))
+
+                Text(
+                    text = stringResource(R.string.checkin_time_left_template, minutes, seconds),
+                    fontSize = 11.sp,
+                    color = colorResource(R.color.text_secondary),
+                )
             }
         }
     }
@@ -163,15 +163,15 @@ private fun RowScope.CheckInEmojiButton(
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
-            backgroundColor = colorResource(R.color.text_primary),
-            contentColor = colorResource(R.color.primary),
+            backgroundColor = colorResource(R.color.surface),
+            contentColor = colorResource(R.color.text_primary),
         ),
         modifier = Modifier
             .weight(1f)
-            .height(72.dp)
+            .height(64.dp)
             .semantics { this.contentDescription = contentDescription },
     ) {
-        Text(text = emoji, fontSize = 32.sp)
+        Text(text = emoji, fontSize = 30.sp)
     }
 }
 

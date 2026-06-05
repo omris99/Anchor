@@ -58,7 +58,8 @@ android {
     // (transplanted SOURCE tree under com.anchor.watch.*) are active source roots.
     sourceSets {
         getByName("main").kotlin.srcDir("src/main/kotlin")
-        getByName("test").kotlin.srcDir("src/test/kotlin")
+        getByName("test").kotlin.srcDirs("tests/unit")
+        getByName("androidTest").kotlin.srcDirs("tests/instrumented")
     }
 
     useLibrary("wear-sdk")

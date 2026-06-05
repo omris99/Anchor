@@ -19,12 +19,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Text
+import com.anchor.watch.R
 import com.anchor.watch.network.PartnerPairingApi
 import com.anchor.watch.network.WatchKeyStore
 import com.google.zxing.BarcodeFormat
@@ -40,6 +42,8 @@ fun WatchPairingScreen(
     pairingApi: PartnerPairingApi,
     watchKeyStore: WatchKeyStore,
     onPaired: () -> Unit,
+    // Friendly name of this watch device, shown in the dashboard after pairing.
+    deviceName: String,
 ) {
     // Holds the QR content (pairing_token) and the watch_id used for polling.
     var pairingToken by remember { mutableStateOf<String?>(null) }
@@ -48,7 +52,7 @@ fun WatchPairingScreen(
 
     // Step 1: request a pairing token from the backend.
     LaunchedEffect(Unit) {
-        val result = pairingApi.initPairing()
+        val result = pairingApi.initPairing(deviceName)
         if (result == null) {
             errorMessage = "שגיאת חיבור\nנסה שוב"
         } else {
@@ -78,7 +82,7 @@ fun WatchPairingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color.Black),
+            .background(colorResource(R.color.surface)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -86,7 +90,7 @@ fun WatchPairingScreen(
             errorMessage != null -> {
                 Text(
                     text = errorMessage!!,
-                    color = androidx.compose.ui.graphics.Color.Red,
+                    color = colorResource(R.color.sos),
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center,
                 )
@@ -95,23 +99,33 @@ fun WatchPairingScreen(
             pairingToken != null -> {
                 Text(
                     text = "סרוק מהאפליקציה",
-                    color = androidx.compose.ui.graphics.Color.White,
-                    fontSize = 13.sp,
+                    color = colorResource(R.color.text_primary),
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 QrCodeImage(
                     content = pairingToken!!,
-                    modifier = Modifier.size(140.dp),
+                    modifier = Modifier.size(130.dp),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "פתחו את אפליקציית\nהמשפחה וסרקו",
+                    color = colorResource(R.color.text_secondary),
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
                 )
             }
 
             else -> {
-                CircularProgressIndicator(modifier = Modifier.size(40.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    indicatorColor = colorResource(R.color.primary),
+                )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "מתחבר...",
-                    color = androidx.compose.ui.graphics.Color.White,
+                    color = colorResource(R.color.text_secondary),
                     fontSize = 13.sp,
                 )
             }

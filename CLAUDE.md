@@ -4,7 +4,8 @@
 מערכת מלאה לניטור קשישים, המורכבת משלושה רכיבים:
 
 - **AnchorWatchApp/** — אפליקציית Wear OS (Kotlin), כבר קיימת.  
-  רצה על שעון הקשיש. אחראית על: הצגת שעון, check-in יומי, תזכורות תרופות, כפתור SOS, זיהוי נפילות, שידור נתוני בריאות לbackend.
+  רצה על שעון הקשיש. אחראית על: הצגת שעון, check-in יומי, תזכורות תרופות, כפתור SOS, זיהוי נפילות, שידור נתוני בריאות לbackend.  
+  **עיצוב**: "כיוון 2 · חם" — רקע תכלת בהיר (`#D6E8F5`), טקסט כהה (`#1C2B3A`), כפתורי ביטול לבנים. Colors ב-`app/src/main/res/values/colors.xml`.
 
 - **Dashboard App** — אפליקציה cross-platform לנייד (React Native), **בפיתוח**.  
   מיועדת לבני משפחה ומטפלים. תאפשר: מעקב אחרי מצב הקשיש בזמן אמת, צפייה בדוחות יומיים ונתוני בריאות, הגדרת תרופות ותזכורות, ניהול קישורים (קישור שעון + קישור בני משפחה), קבלת התראות חירום.  
@@ -38,9 +39,11 @@
 - **ללא CDK** — רק CLI scripts. כל תשתית מוקמת דרך `anchor-backend/scripts/`
 - **ה-PRD אינו קדוש** — אם יש פתרון טוב יותר, מיישמים אותו
 - החלטות ארכיטקטורה מתועדות ב-`DECISIONS.md` בשורש הפרויקט
+- **Tests (Watch App)** — קבצי הtest הועברו מ-`src/test/` ל-`app/tests/unit/` (unit) ו-`app/tests/instrumented/` (instrumented). Gradle מוגדר בהתאם ב-`build.gradle.kts`.
 
 ## ארכיטקטורה — נקודות מפתח
 - **שעון** מזדהה עם API Key (לא JWT) — header: `X-Watch-Key`
+- **watch_name** — נשמר ב-`Anchor_Users`. השעון שולח `device_name` ב-body של `POST /watch/init-pairing` → נשמר בrecord הזמני → מועבר לuser row בpairing. מוחזר מ-`GET /users/{id}/profile`.
 - **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי כשנוצרת תרופה חדשה
 - **Push notifications** — FCM: שני סוגי silent push לשעון: `medication_sync` (סנכרון תרופות), `request_checkin` (פותח `CheckInActivity`). Push רגיל לדאשבורד על emergency
 - **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
@@ -59,6 +62,7 @@
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
 - Medication reminders: GET /medication-reminders/{userId}, confirm, missed (watch) ✅
 - Emergency: POST /emergency, POST /emergency/{id}/acknowledge ✅
+- User profile: GET /users/{id}/profile — מחזיר watch_id, watch_name, watch_paired_at (לדאשבורד, JWT auth) ✅
 
 ## סדר endpoints שנשאר לבנות
 1. `/users/{id}/family/request`, `/users/{id}/family/approve`

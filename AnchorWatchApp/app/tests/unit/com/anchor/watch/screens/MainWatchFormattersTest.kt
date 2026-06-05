@@ -37,21 +37,26 @@ class MainWatchFormattersTest {
     }
 
     @Test
-    fun date_isStableDdMmYyyyAcrossLocales() {
-        val d = dateAt(2026, 1, 9, 0, 0)
-        assertEquals("09/01/2026", MainWatchFormatters.date(d, Locale("he")))
-        assertEquals("09/01/2026", MainWatchFormatters.date(d, Locale.ENGLISH))
+    fun date_formatsAsDayNameDotDayMonth() {
+        val d = dateAt(2026, 1, 9, 0, 0)  // Friday, January 9
+        val heDate = MainWatchFormatters.date(d, Locale("he"))
+        val enDate = MainWatchFormatters.date(d, Locale.ENGLISH)
+        assertTrue("Hebrew date must contain separator", heDate.contains("·"))
+        assertTrue("English date must contain separator", enDate.contains("·"))
+        assertTrue("Both must contain day 9", heDate.contains("9") && enDate.contains("9"))
+        assertTrue("English must contain January", enDate.lowercase().let {
+            it.contains("january") || it.contains("jan")
+        })
     }
 
     @Test
     fun formatters_followTheSuppliedLocale_notAHardcodedOne() {
-        // A locale whose default time pattern differs in spirit still produces HH:mm here
-        // because the pattern is explicit; the point is that the Locale flows through and
-        // SimpleDateFormat is constructed with it (no internal Locale("he") override).
         val d = dateAt(2026, 12, 31, 8, 5)
         listOf(Locale.ENGLISH, Locale("he"), Locale.US, Locale.getDefault()).forEach { loc ->
             assertEquals("Locale $loc", "08:05", MainWatchFormatters.time(d, loc))
-            assertEquals("Locale $loc", "31/12/2026", MainWatchFormatters.date(d, loc))
+            val dateStr = MainWatchFormatters.date(d, loc)
+            assertTrue("Locale $loc date must contain separator", dateStr.contains("·"))
+            assertTrue("Locale $loc date must contain 31", dateStr.contains("31"))
         }
     }
 }

@@ -85,54 +85,74 @@ fun SosScreen(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 10.dp, vertical = 12.dp),
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
             ) {
                 Text(
                     text = stringResource(R.string.sos_title),
-                    fontSize = 36.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colorResource(R.color.text_primary),
+                    color = colorResource(R.color.text_on_colored),
+                    textAlign = TextAlign.Center,
+                )
+
+                Text(
+                    text = stringResource(R.string.sos_subtitle),
+                    fontSize = 13.sp,
+                    color = colorResource(R.color.text_on_colored),
                     textAlign = TextAlign.Center,
                 )
 
                 Spacer(Modifier.height(6.dp))
 
-                val message = when (val s = state) {
-                    is EmergencyState.CountingDown ->
-                        stringResource(R.string.sos_countdown_template, s.secondsLeft)
-                    EmergencyState.Dispatching -> stringResource(R.string.sos_dispatching)
-                    is EmergencyState.Sent ->
-                        if (s.online) stringResource(R.string.sos_sent)
-                        else stringResource(R.string.sos_queued)
-                    EmergencyState.Idle -> stringResource(R.string.sos_initializing)
-                }
-                Text(
-                    text = message,
-                    fontSize = 20.sp,
-                    color = colorResource(R.color.text_primary),
-                    textAlign = TextAlign.Center,
-                )
-
-                if (state is EmergencyState.CountingDown) {
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = {
-                            EmergencyService.cancel(context)
-                            onDismiss()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = colorResource(R.color.confirm),
-                            contentColor = colorResource(R.color.text_primary),
-                        ),
-                        modifier = Modifier
-                            .size(72.dp)
-                            .semantics { contentDescription = cancelCd },
-                    ) {
+                when (val s = state) {
+                    is EmergencyState.CountingDown -> {
                         Text(
-                            text = stringResource(R.string.sos_cancel),
-                            fontSize = 22.sp,
+                            text = "${s.secondsLeft}",
+                            fontSize = 56.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colorResource(R.color.text_primary),
+                            color = colorResource(R.color.text_on_colored),
+                        )
+                        Text(
+                            text = stringResource(R.string.sos_seconds_label),
+                            fontSize = 13.sp,
+                            color = colorResource(R.color.text_on_colored),
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Button(
+                            onClick = {
+                                EmergencyService.cancel(context)
+                                onDismiss()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = colorResource(R.color.surface),
+                                contentColor = colorResource(R.color.text_primary),
+                            ),
+                            modifier = Modifier
+                                .size(64.dp)
+                                .semantics { contentDescription = cancelCd },
+                        ) {
+                            Text(
+                                text = "✕  ${stringResource(R.string.sos_cancel)}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colorResource(R.color.text_primary),
+                            )
+                        }
+                    }
+                    else -> {
+                        Spacer(Modifier.height(8.dp))
+                        val message = when (s) {
+                            EmergencyState.Dispatching -> stringResource(R.string.sos_dispatching)
+                            is EmergencyState.Sent ->
+                                if (s.online) stringResource(R.string.sos_sent)
+                                else stringResource(R.string.sos_queued)
+                            else -> stringResource(R.string.sos_initializing)
+                        }
+                        Text(
+                            text = message,
+                            fontSize = 18.sp,
+                            color = colorResource(R.color.text_on_colored),
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }

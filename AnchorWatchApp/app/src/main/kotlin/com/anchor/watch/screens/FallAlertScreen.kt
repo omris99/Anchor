@@ -78,9 +78,9 @@ fun FallAlertScreen(
             ) {
                 Text(
                     text = stringResource(R.string.fall_detected_title),
-                    fontSize = 30.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colorResource(R.color.text_primary),
+                    color = colorResource(R.color.text_on_colored),
                     textAlign = TextAlign.Center,
                 )
 
@@ -98,8 +98,8 @@ fun FallAlertScreen(
                 }
                 Text(
                     text = message,
-                    fontSize = 18.sp,
-                    color = colorResource(R.color.text_primary),
+                    fontSize = 16.sp,
+                    color = colorResource(R.color.text_on_colored),
                     textAlign = TextAlign.Center,
                 )
 
@@ -108,16 +108,16 @@ fun FallAlertScreen(
                     Button(
                         onClick = { controller.cancel() },
                         colors = ButtonDefaults.buttonColors(
-                            backgroundColor = colorResource(R.color.confirm),
+                            backgroundColor = colorResource(R.color.surface),
                             contentColor = colorResource(R.color.text_primary),
                         ),
                         modifier = Modifier
-                            .defaultMinSize(minWidth = 96.dp, minHeight = 56.dp)
+                            .defaultMinSize(minWidth = 96.dp, minHeight = 52.dp)
                             .semantics { contentDescription = cancelCd },
                     ) {
                         Text(
                             text = stringResource(R.string.fall_im_ok),
-                            fontSize = 22.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = colorResource(R.color.text_primary),
                         )
