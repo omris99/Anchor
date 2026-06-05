@@ -88,6 +88,9 @@ deploy_lambda "medication-reminders-dashboard" "medication-reminders-dashboard"
 deploy_lambda "emergency"             "emergency"
 deploy_lambda "emergency-acknowledge" "emergency-acknowledge"
 
+# User profile
+deploy_lambda "user-profile" "user-profile"
+
 echo ""
 echo "[3/3] Done!"
 echo ""

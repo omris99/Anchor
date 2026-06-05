@@ -74,6 +74,9 @@ add_route "medication-reminders-dashboard" "DELETE" "/users/{id}/medication-remi
 add_route "emergency"             "POST" "/emergency"
 add_route "emergency-acknowledge" "POST" "/emergency/{id}/acknowledge"
 
+# --- User profile ---
+add_route "user-profile" "GET" "/users/{id}/profile"
+
 echo ""
 echo "All routes added. API is live at:"
 echo "  https://${API_ID}.execute-api.${REGION}.amazonaws.com"

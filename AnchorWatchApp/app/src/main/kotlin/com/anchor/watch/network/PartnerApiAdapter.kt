@@ -161,7 +161,7 @@ internal interface PartnerFcmService {
 
 internal interface PartnerPairingService {
     @POST("watch/init-pairing")
-    suspend fun initPairing(): retrofit2.Response<InitPairingResponseDto>
+    suspend fun initPairing(@Body body: InitPairingRequestDto): retrofit2.Response<InitPairingResponseDto>
 
     // Polling endpoint: returns watch_api_key once dashboard completes pairing.
     @GET("watch/credentials")
@@ -229,6 +229,13 @@ internal data class MedicationStatusDto(
 @JsonClass(generateAdapter = true)
 internal data class FcmTokenDto(
     val fcm_token: String,
+)
+
+// Sent in the body of POST /watch/init-pairing so the backend can store the
+// watch's friendly name alongside the pairing record and later stamp it on the user row.
+@JsonClass(generateAdapter = true)
+internal data class InitPairingRequestDto(
+    val device_name: String,
 )
 
 @JsonClass(generateAdapter = true)
@@ -336,11 +343,15 @@ internal class PartnerCheckInApi(
 class PartnerPairingApi internal constructor(
     private val service: PartnerPairingService,
 ) {
-    /** Fetches a 5-minute pairing token (DECISIONS.md §2). Returns null on failure. */
-    internal suspend fun initPairing(): InitPairingResponseDto? =
+    /**
+     * Fetches a 5-minute pairing token (DECISIONS.md §2). Returns null on failure.
+     * [deviceName] is the watch's friendly name (e.g. "Galaxy Watch 6"); stored by the backend
+     * so the dashboard can display it instead of a raw watch_id.
+     */
+    internal suspend fun initPairing(deviceName: String): InitPairingResponseDto? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val response = service.initPairing()
+                val response = service.initPairing(InitPairingRequestDto(device_name = deviceName))
                 if (response.isSuccessful) response.body() else null
             }.getOrNull()
         }

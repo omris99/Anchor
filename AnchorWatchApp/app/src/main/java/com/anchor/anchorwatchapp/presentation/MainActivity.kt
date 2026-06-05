@@ -20,7 +20,9 @@ package com.anchor.anchorwatchapp.presentation
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -91,6 +93,9 @@ class MainActivity : ComponentActivity() {
 
         FallDetectionService.start(applicationContext)
         val layoutDirection = LocaleHelper.layoutDirection(this)
+        // Computed once before setContent to avoid repeated calls on every recomposition.
+        val watchDeviceName: String = Settings.Global.getString(contentResolver, "device_name")
+            ?: Build.MODEL
 
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
@@ -100,6 +105,7 @@ class MainActivity : ComponentActivity() {
                     Screen.Pairing -> WatchPairingScreen(
                         pairingApi = PartnerApi.pairing(applicationContext),
                         watchKeyStore = WatchKeyStore.get(applicationContext),
+                        deviceName = watchDeviceName,
                         onPaired = {
                             screen = Screen.Main
                             lifecycleScope.launch {

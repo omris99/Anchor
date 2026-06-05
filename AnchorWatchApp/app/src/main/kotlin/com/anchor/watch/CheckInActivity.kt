@@ -96,8 +96,10 @@ class CheckInActivity : ComponentActivity() {
                 ?: lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
                 ?: lm.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
         }.getOrNull()
-        Log.d(TAG, "location: lastKnown=$lastKnown")
-        if (lastKnown != null) return lastKnown
+        val lastKnownAgeMs = lastKnown?.let { System.currentTimeMillis() - it.time } ?: Long.MAX_VALUE
+        Log.d(TAG, "location: lastKnown=$lastKnown ageMs=$lastKnownAgeMs")
+        // Only use cached location if it's fresh (under 5 minutes old)
+        if (lastKnown != null && lastKnownAgeMs < 5 * 60 * 1_000L) return lastKnown
 
         Log.d(TAG, "location: requesting live fix from providers=$enabledProviders")
         return withTimeoutOrNull(20_000L) {
