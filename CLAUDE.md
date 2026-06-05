@@ -61,13 +61,14 @@
 - Checkins request: POST /users/{id}/checkins/request (JWT — שולח FCM request_checkin לשעון) ✅
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
 - Medication reminders: GET /medication-reminders/{userId}, confirm, missed (watch) ✅
-- Emergency: POST /emergency, POST /emergency/{id}/acknowledge ✅
+- Emergency: POST /emergency (שומר + Expo push לקשיש ולמשפחה), POST /emergency/{id}/acknowledge ✅
+- Emergency alerts: GET /users/{id}/emergency-alerts (JWT) ✅
+- Mobile FCM token: POST /users/{id}/mobile-fcm-token (JWT) — שמירת Expo Push Token של הדאשבורד ✅
 - User profile: GET /users/{id}/profile — מחזיר watch_id, watch_name, watch_paired_at (לדאשבורד, JWT auth) ✅
 
 ## סדר endpoints שנשאר לבנות
 1. `/users/{id}/family/request`, `/users/{id}/family/approve`
 2. `/users/{id}/reports` (+ OpenAI)
-3. FCM push לדאשבורד על emergency
 
 ## cleanup נדרש לפני production
 - הסרת debug logs מ-`CheckInActivity.kt`, `DailyCheckInScreen.kt`, `PartnerApiAdapter.kt`

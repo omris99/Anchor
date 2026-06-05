@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
+    ActivityIndicator,
     Image,
     ImageBackground,
     ScrollView,
@@ -9,15 +10,15 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { UserContext } from '../../logic/contexts/UserContext';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
-// TODO: LOAD — יש לטעון אירועי חירום אמיתיים מהשרת.
-// GET /users/{userId}/emergency-events
 const MOCK_EMERGENCY_EVENTS = [
     {
         id: '1',
         timestamp: '4/5/2026, 14:22',
         type: 'זוהתה נפילה!',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
     },
@@ -25,7 +26,7 @@ const MOCK_EMERGENCY_EVENTS = [
         id: '2',
         timestamp: '1/5/2026, 09:05',
         type: 'לחיצה על כפתור מצוקה',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
         
@@ -34,7 +35,7 @@ const MOCK_EMERGENCY_EVENTS = [
         id: '3',
         timestamp: '28/4/2026, 20:47',
         type: 'זוהתה נפילה!',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
     },
@@ -42,13 +43,44 @@ const MOCK_EMERGENCY_EVENTS = [
         id: '4',
         timestamp: '20/4/2026, 11:30',
         type: 'דופק חלש מאוד',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
     },
 ];
 
+function formatAlertForScreen(alert) {
+    const location = (alert.location?.lat != null && alert.location?.lng != null)
+        ? { lat: alert.location.lat, lng: alert.location.lng }
+        : null;
+    return {
+        id: alert.id,
+        timestamp: new Date(alert.timestamp).toLocaleString('he-IL'),
+        type: alert.type === 'SOS' ? 'לחיצת SOS' : 'זוהתה נפילה!',
+        location,
+        status: alert.status,
+        isEmergency: true,
+    };
+}
+
 export default function EmergencyHistoryScreen({ navigation }) {
+    const { user } = useContext(UserContext);
+    const [realAlerts, setRealAlerts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user?.userId) { setIsLoading(false); return; }
+        apiRequest(`/users/${user.userId}/emergency-alerts`)
+            .then(data => setRealAlerts(data.alerts || []))
+            .catch(() => {})
+            .finally(() => setIsLoading(false));
+    }, [user?.userId]);
+
+    const allEvents = [
+        ...realAlerts.map(formatAlertForScreen),
+        ...MOCK_EMERGENCY_EVENTS,
+    ];
+
     return (
         <ImageBackground
             source={require('../assets/wave-background.png')}
@@ -72,12 +104,10 @@ export default function EmergencyHistoryScreen({ navigation }) {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {MOCK_EMERGENCY_EVENTS.length === 0 ? (
-                        <View style={styles.emptyCard}>
-                            <Text style={styles.emptyText}>לא נרשמו אירועי חירום</Text>
-                        </View>
+                    {isLoading ? (
+                        <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
                     ) : (
-                        MOCK_EMERGENCY_EVENTS.map(event => (
+                        allEvents.map(event => (
                             <TouchableOpacity
                                 key={event.id}
                                 style={styles.eventCard}
@@ -100,6 +130,7 @@ export default function EmergencyHistoryScreen({ navigation }) {
                         ))
                     )}
                 </ScrollView>
+
             </SafeAreaView>
         </ImageBackground>
     );

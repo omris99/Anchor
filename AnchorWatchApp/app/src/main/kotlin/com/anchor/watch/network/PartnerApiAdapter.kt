@@ -179,6 +179,8 @@ internal data class EmergencyRequestDto(
     val type: String,
     val timestamp: Long,
     val is_emergency: Boolean = true,
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -256,7 +258,7 @@ internal data class PairingResultDto(
 internal class PartnerEmergencyApi(
     private val service: PartnerEmergencyService,
 ) : EmergencyApi {
-    override suspend fun submit(event: EmergencyEventEntity): Boolean =
+    override suspend fun submit(event: EmergencyEventEntity, lat: Double?, lng: Double?): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {
                 service.trigger(
@@ -265,6 +267,8 @@ internal class PartnerEmergencyApi(
                         user_id = event.userId,
                         type = event.type,
                         timestamp = event.timestamp,
+                        lat = lat,
+                        lng = lng,
                     )
                 ).isSuccessful
             }.getOrDefault(false)

@@ -30,10 +30,28 @@
           "color": "#ffffff"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "נדרש כדי להציג את מיקום הקשיש בהתראות חירום."
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "apiBaseUrl": "https://u7cxnohim6.execute-api.us-east-1.amazonaws.com",
+      "cognito": {
+        "region": "us-east-1",
+        "userPoolId": "us-east-1_KXDRK5VnC",
+        "userPoolClientId": "1smq0heh9hmht2tti3rnb4usvi"
+      },
+      "eas": {
+        "projectId": "39415886-a1ef-4b45-9c7e-2976cb67d430"
+      }
+    },
+    "owner": "omris99"
   }
 }

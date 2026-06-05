@@ -6,6 +6,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
@@ -40,17 +42,22 @@ sealed class EmergencyState {
 }
 
 interface EmergencyApi {
-    suspend fun submit(event: EmergencyEventEntity): Boolean
+    suspend fun submit(
+        event: EmergencyEventEntity,
+        lat: Double? = null,
+        lng: Double? = null,
+    ): Boolean
 }
 
 object UnreachableEmergencyApi : EmergencyApi {
-    override suspend fun submit(event: EmergencyEventEntity): Boolean = false
+    override suspend fun submit(event: EmergencyEventEntity, lat: Double?, lng: Double?): Boolean = false
 }
 
 class EmergencyOrchestrator(
     private val store: EmergencyStore,
     private val api: EmergencyApi,
     private val onQueueForRetry: () -> Unit,
+    private val locationProvider: (() -> Pair<Double?, Double?>)? = null,
     private val clock: () -> Long = System::currentTimeMillis,
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
@@ -86,6 +93,7 @@ class EmergencyOrchestrator(
 
     suspend fun dispatch() {
         _state.value = EmergencyState.Dispatching
+        val (lat, lng) = locationProvider?.invoke() ?: (null to null)
         val event = EmergencyEventEntity(
             id = idGenerator(),
             timestamp = clock(),
@@ -94,7 +102,7 @@ class EmergencyOrchestrator(
             isSynced = false,
         )
         store.save(event)
-        val ok = runCatching { api.submit(event) }.getOrDefault(false)
+        val ok = runCatching { api.submit(event, lat, lng) }.getOrDefault(false)
         if (ok) {
             store.markSynced(event.id)
             _state.value = EmergencyState.Sent(online = true)
@@ -109,6 +117,7 @@ class EmergencyService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var orchestrator: EmergencyOrchestrator
+    private var activeAlarmRingtone: android.media.Ringtone? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -118,6 +127,7 @@ class EmergencyService : Service() {
             // PartnerApiAdapter: was UnreachableEmergencyApi (SOURCE default stub).
             api = PartnerApi.emergency(applicationContext),
             onQueueForRetry = { EmergencySyncWorker.enqueue(applicationContext) },
+            locationProvider = { getLastKnownLocationNow() },
         )
         scope.launch {
             orchestrator.state.collect { liveState.value = it }
@@ -206,10 +216,30 @@ class EmergencyService : Service() {
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
+        activeAlarmRingtone = ringtone
         ringtone.play()
     }
 
+    private fun stopAlarmRingtone() {
+        activeAlarmRingtone?.stop()
+        activeAlarmRingtone = null
+    }
+
+    private fun getLastKnownLocationNow(): Pair<Double?, Double?> {
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) return null to null
+        val locationManager = getSystemService(LOCATION_SERVICE) as? LocationManager ?: return null to null
+        val location = runCatching {
+            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
+        }.getOrNull()
+        return (location?.latitude to location?.longitude)
+    }
+
     private fun stopSelfSafe() {
+        stopAlarmRingtone()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -225,6 +255,7 @@ class EmergencyService : Service() {
     }
 
     override fun onDestroy() {
+        stopAlarmRingtone()
         scope.cancel()
         super.onDestroy()
     }

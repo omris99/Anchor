@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as Location from 'expo-location';
 import {
     Image,
     ImageBackground,
@@ -19,9 +20,36 @@ const MOCK_EVENT = {
     isEmergency: true,
 };
 
+function useReverseGeocode(location) {
+    const [address, setAddress] = useState(null);
+
+    useEffect(() => {
+        if (!location?.lat || !location?.lng) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const results = await Location.reverseGeocodeAsync(
+                    { latitude: location.lat, longitude: location.lng },
+                    { useGoogleMaps: false },
+                );
+                if (cancelled || !results?.length) return;
+                const r = results[0];
+                const parts = [r.name ?? r.street, r.city, r.country].filter(Boolean);
+                setAddress(parts.join(', ') || null);
+            } catch {
+                // leave address as null — fallback to coordinates shown below
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [location?.lat, location?.lng]);
+
+    return address;
+}
+
 export default function EmergencyEventScreen({ route, navigation }) {
     const event = route?.params?.event ?? MOCK_EVENT;
     const [acknowledged, setAcknowledged] = useState(event.status === 'acknowledged');
+    const resolvedAddress = useReverseGeocode(event.location);
 
     return (
         <ImageBackground
@@ -70,7 +98,13 @@ export default function EmergencyEventScreen({ route, navigation }) {
                     <View style={styles.card}>
                         <Text style={styles.sectionLabel}>מיקום אחרון:</Text>
                         <View style={styles.mapPlaceholder}>
-                            <Text style={styles.mapPlaceholderText}>📍 {event.location ?? 'מיקום לא זמין'}</Text>
+                            <Text style={styles.mapPlaceholderText}>
+                                {resolvedAddress
+                                    ? `📍 ${resolvedAddress}`
+                                    : event.location
+                                        ? `📍 ${event.location.lat.toFixed(5)}, ${event.location.lng.toFixed(5)}`
+                                        : '📍 מיקום לא זמין'}
+                            </Text>
                         </View>
                     </View>
 

@@ -1,11 +1,14 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Amplify } from "aws-amplify";
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { awsAuthConfig } from "./config/awsAuthConfig";
 import { UserContext } from "./logic/contexts/UserContext";
+import { apiRequest } from "./logic/services/api/ApiClient";
 import WelcomeScreen from './ui/Screens/WelcomeScreen';
 import RegisterScreen from './ui/Screens/RegisterScreen';
 import ConfirmSignUpScreen from "./ui/Screens/ConfirmSignUpScreen";
@@ -21,14 +24,128 @@ import WatchPairingScreen from "./ui/Screens/WatchPairingScreen";
 
 Amplify.configure(awsAuthConfig);
 
+// Show emergency notifications even when the app is in the foreground.
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+    }),
+});
+
 const Stack = createNativeStackNavigator();
+const navigationRef = createNavigationContainerRef();
+
+function parseLocationString(str) {
+    if (!str) return null;
+    const parts = str.split(',');
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    return (isNaN(lat) || isNaN(lng)) ? null : { lat, lng };
+}
+
+function buildEmergencyEventFromNotification(notificationData) {
+    return {
+        id: notificationData.alertId,
+        timestamp: new Date(notificationData.timestamp).toLocaleString('he-IL'),
+        type: notificationData.alertType === 'SOS' ? 'לחיצת SOS' : 'זוהתה נפילה!',
+        location: parseLocationString(notificationData.location),
+        status: 'pending',
+        isEmergency: true,
+    };
+}
+
+function handleEmergencyNotification(notificationData) {
+    console.log('[Emergency] handleEmergencyNotification called, data:', JSON.stringify(notificationData));
+    if (notificationData?.type !== 'emergency') {
+        console.log('[Emergency] Ignored — type is not "emergency":', notificationData?.type);
+        return;
+    }
+    if (!navigationRef.isReady()) {
+        console.log('[Emergency] navigationRef not ready yet');
+        return;
+    }
+    console.log('[Emergency] Navigating to emergency-event screen');
+    navigationRef.navigate('emergency-event', {
+        event: buildEmergencyEventFromNotification(notificationData),
+    });
+}
 
 export default function App() {
     const [user, setUser] = useState(null);
+    const notificationResponseSubscription = useRef(null);
+    const notificationReceivedSubscription = useRef(null);
+
+    // Register the device FCM token whenever the logged-in user changes.
+    useEffect(() => {
+        if (!user?.userId) return;
+
+        async function registerDevicePushToken() {
+            if (Platform.OS === 'android') {
+                await Notifications.setNotificationChannelAsync('emergency', {
+                    name: 'Emergency Alerts',
+                    importance: Notifications.AndroidImportance.MAX,
+                    sound: 'default',
+                    vibrationPattern: [0, 250, 250, 250],
+                });
+            }
+
+            const { status: permissionStatus } = await Notifications.requestPermissionsAsync();
+            if (permissionStatus !== 'granted') return;
+
+            try {
+                const expoProjectId = Constants.expoConfig?.extra?.eas?.projectId;
+                const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId: expoProjectId });
+                console.log('[Push] getExpoPushTokenAsync result:', JSON.stringify(tokenResult));
+                const expoPushToken = tokenResult.data;
+                await apiRequest(`/users/${user.userId}/mobile-fcm-token`, {
+                    method: 'POST',
+                    body: JSON.stringify({ fcm_token: expoPushToken }),
+                });
+                console.log('[Push] Expo push token registered successfully for user:', user.userId);
+            } catch (error) {
+                console.log('[Push] Push token registration failed:', error?.message);
+            }
+        }
+
+        registerDevicePushToken();
+    }, [user?.userId]);
+
+    // Set up notification listeners once on mount.
+    useEffect(() => {
+        // Handle the case where the app was launched by tapping a notification
+        // while the app was completely closed.
+        Notifications.getLastNotificationResponseAsync().then(lastResponse => {
+            console.log('[Emergency] getLastNotificationResponseAsync result:', JSON.stringify(lastResponse));
+            if (lastResponse) {
+                handleEmergencyNotification(lastResponse.notification.request.content.data);
+            }
+        });
+
+        // Handle tap on a notification while the app was in the background.
+        notificationResponseSubscription.current =
+            Notifications.addNotificationResponseReceivedListener(response => {
+                console.log('[Emergency] addNotificationResponseReceivedListener fired, full response:', JSON.stringify(response));
+                handleEmergencyNotification(response.notification.request.content.data);
+            });
+
+        // Handle notification that arrives while the app is open in the foreground.
+        notificationReceivedSubscription.current =
+            Notifications.addNotificationReceivedListener(notification => {
+                console.log('[Emergency] addNotificationReceivedListener fired, full notification:', JSON.stringify(notification));
+                handleEmergencyNotification(notification.request.content.data);
+            });
+
+        return () => {
+            notificationResponseSubscription.current?.remove();
+            notificationReceivedSubscription.current?.remove();
+        };
+    }, []);
+
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <UserContext.Provider value={{ user, setUser }}>
-                <NavigationContainer>
+                <NavigationContainer ref={navigationRef}>
                     <Stack.Navigator initialRouteName="welcome">
                         <Stack.Screen
                             name="welcome"

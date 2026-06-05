@@ -87,6 +87,10 @@ deploy_lambda "medication-reminders-dashboard" "medication-reminders-dashboard"
 # Emergency
 deploy_lambda "emergency"             "emergency"
 deploy_lambda "emergency-acknowledge" "emergency-acknowledge"
+deploy_lambda "emergency-alerts-get"  "emergency-alerts-get"
+
+# Mobile FCM token (dashboard)
+deploy_lambda "mobile-fcm-token" "mobile-fcm-token"
 
 # User profile
 deploy_lambda "user-profile" "user-profile"

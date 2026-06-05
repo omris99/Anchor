@@ -74,6 +74,9 @@ add_route "medication-reminders-dashboard" "DELETE" "/users/{id}/medication-remi
 add_route "emergency"             "POST" "/emergency"
 add_route "emergency-acknowledge" "POST" "/emergency/{id}/acknowledge"
 
+# --- Mobile FCM token (dashboard) ---
+add_route "mobile-fcm-token" "POST" "/users/{id}/mobile-fcm-token"
+
 # --- User profile ---
 add_route "user-profile" "GET" "/users/{id}/profile"
 
