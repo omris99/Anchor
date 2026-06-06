@@ -67,9 +67,6 @@ function routeNotification(notificationData) {
         navigationRef.navigate('emergency-event', {
             event: buildEmergencyEventFromNotification(notificationData),
         });
-    } else if (type === 'medication_taken') {
-        console.log('[Notification] Navigating to medication-reminders screen');
-        navigationRef.navigate('medication-reminders');
     } else {
         console.log('[Notification] Ignored — unknown type:', type);
     }

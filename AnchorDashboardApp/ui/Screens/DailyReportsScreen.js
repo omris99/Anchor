@@ -154,7 +154,7 @@ export default function DailyReportsScreen({ navigation }) {
         apiRequest(`/users/${user.userId}/checkins`)
             .then(data => {
                 const real = (data.checkins ?? []).map(checkinToReport);
-                if (real.length > 0) setReports(real);
+                setReports([...real, ...MOCK_REPORTS]);
             })
             .catch(() => {}); // keep mock data on error
         return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };
