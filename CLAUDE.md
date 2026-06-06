@@ -30,7 +30,7 @@
   - HomeScreen ✅ — ניווט ל-5 מסכים ראשיים + `WellnessStatusCard` (נקודה פועמת ירוק/צהוב/אדום, מתרענן עם `useFocusEffect`)
   - MedicationRemindersScreen ✅ — UI מלא (שם תרופה, שעה, ימים, רשימה), ממתין לחיבור backend (`/medication-reminders`)
   - HealthDataScreen ✅ — גרף חודשי, ניטור אחרון, מדדים חריגים, ייצוא PDF (stub)
-  - DailyReportsScreen ✅ — דיווח יומי + היסטוריה, ממתין לחיבור backend (`/users/{id}/reports`)
+  - DailyReportsScreen ✅ — דיווח יומי + היסטוריה. מציג: מצב רוח, סוללה, מיקום, תרופות שננטלו/שנותר לנטול (מגיעות מ-`checkin.medications` — snapshot שנשמר בזמן הcheck-in)
   - PreferencesScreen ✅ — toggles, תזכורות מים וארוחות, כפתור התנתקות אדום (logoutUser + Amplify signOut + setUser(null))
   - LinkManagementScreen ✅ — route `connections`, תוכן לפי `user.userType`: קשיש רואה קישור שעון + אישור בקשות; בן משפחה רואה שליחת בקשה לפי טלפון
   - WatchPairingScreen ✅ — route `watch-pairing`, סורק QR אמיתי (expo-camera), נגיש לקשיש בלבד. ממתין לחיבור backend (`/watch/pair`)
@@ -49,7 +49,7 @@
 - **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
 - **CheckInContext** — DTO (lat, lng, batteryPercent) שנשלח עם כל check-in מהשעון. מוסיפים שדות עתידיים רק כאן (לא ב-`CheckInEntity` שב-Room)
 - **Location (Watch)** — `utils/LocationProvider.kt` מכיל `suspend fun requestBestLocation(context)` משותף ל-`CheckInActivity` ול-`EmergencyService`. לוגיקה: last-known רענן (< 5 דק') → live fix מכל providers (עד 20 שניות) → null
-- **Checkins Lambda** — משתמש ב-`UpdateCommand` (לא `PutCommand`) כדי שretry ריק לא יחליף location אמיתי
+- **Checkins Lambda** — משתמש ב-`UpdateCommand` (לא `PutCommand`) כדי שretry ריק לא יחליף location אמיתי. שומר snapshot של תרופות (`medications: [{id, name, scheduled_time, status}]`) בזמן הcheck-in עם `if_not_exists` — כך retry לא מחליף את הsnapshot המקורי ברשימה עדכנית
 - **Daily Report** — חישוב בזמן אמת + OpenAI API לניתוח
 - **Watch Pairing** — QR code על השעון, הקשיש סורק מהדאשבורד
 - **Family Linking** — הזנת מספר טלפון + אישור הקשיש
@@ -59,7 +59,7 @@
 ## מה כבר בנוי (endpoints)
 - Auth: register, login, confirm, verify-mfa ✅
 - Watch: init-pairing, pair, credentials, fcm-token ✅
-- Checkins: POST /checkins (שומר lat/lng/battery_percent), GET /users/{id}/checkins ✅
+- Checkins: POST /checkins (שומר lat/lng/battery_percent + snapshot תרופות), GET /users/{id}/checkins ✅
 - Checkins request: POST /users/{id}/checkins/request (JWT — שולח FCM request_checkin לשעון) ✅
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
 - Medication reminders: GET /medication-reminders/{userId}, confirm (שולח Expo push לקשיש ולמשפחה עם שם התרופה), missed (watch) ✅

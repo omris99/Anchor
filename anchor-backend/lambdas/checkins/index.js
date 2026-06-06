@@ -5,8 +5,8 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
-  PutCommand,
   UpdateCommand,
+  QueryCommand,
   ScanCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
@@ -14,8 +14,9 @@ const ddb = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" })
 );
 
-const USERS_TABLE = process.env.USERS_TABLE || "Anchor_Users";
+const USERS_TABLE    = process.env.USERS_TABLE    || "Anchor_Users";
 const CHECKINS_TABLE = process.env.CHECKINS_TABLE || "Anchor_DailyCheckIns";
+const MEDS_TABLE     = process.env.MEDS_TABLE     || "Anchor_MedicationReminders";
 
 exports.handler = async (event) => {
   const watchKey = headerLookup(event, "x-watch-key");
@@ -46,11 +47,30 @@ exports.handler = async (event) => {
   const ts = new Date(timestamp || Date.now()).toISOString();
   const id = event_id || `${userId}#${ts}`;
 
+  // Snapshot current medication statuses so historical reports stay accurate
+  // even as the medication list changes over time.
+  let medicationsSnapshot = [];
+  try {
+    const medsResult = await ddb.send(new QueryCommand({
+      TableName: MEDS_TABLE,
+      KeyConditionExpression: "user_id = :u",
+      ExpressionAttributeValues: { ":u": userId },
+    }));
+    medicationsSnapshot = (medsResult.Items || []).map(m => ({
+      id: m.id,
+      name: m.medication_name,
+      scheduled_time: m.scheduled_time,
+      status: m.status || "pending",
+    }));
+  } catch {
+    // Non-fatal — check-in is saved without medication data
+  }
+
   // Use UpdateCommand so retries (which send lat/lng=null) don't overwrite
   // real location data written by the original submission.
-  let updateExpr = "SET #s = :status, id = :id, event_id = :eid";
+  let updateExpr = "SET #s = :status, id = :id, event_id = :eid, medications = if_not_exists(medications, :meds)";
   const exprNames  = { "#s": "status" };
-  const exprValues = { ":status": status, ":id": id, ":eid": id };
+  const exprValues = { ":status": status, ":id": id, ":eid": id, ":meds": medicationsSnapshot };
 
   if (lat != null)             { updateExpr += ", lat = :lat";  exprValues[":lat"] = lat; }
   if (lng != null)             { updateExpr += ", lng = :lng";  exprValues[":lng"] = lng; }

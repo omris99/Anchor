@@ -63,12 +63,17 @@ const STATUS_EMOJI = { happy: '😊', neutral: '😐', sad: '😔', no_response:
 // Maps a server check-in to the same shape as MOCK_REPORTS so ReportCard stays unchanged.
 function checkinToReport(checkin, index) {
     const date = new Date(checkin.timestamp);
+    const meds = checkin.medications ?? [];
     return {
         id: checkin.id || checkin.event_id || String(index),
         dateLabel: index === 0 ? 'היום' : index === 1 ? 'אתמול' : date.toLocaleDateString('he-IL'),
         wakeUpTime: date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-        medicationsTaken: [],
-        medicationsPending: [],
+        medicationsTaken: meds
+            .filter(m => m.status === 'taken')
+            .map(m => ({ name: m.name, time: m.scheduled_time })),
+        medicationsPending: meds
+            .filter(m => m.status === 'pending' || m.status === 'missed')
+            .map(m => ({ name: m.name, time: m.scheduled_time })),
         generalFeelingEmoji: STATUS_EMOJI[checkin.status] ?? '—',
         batteryPercent: checkin.battery_percent ?? null,
         location: checkin.lat != null && checkin.lng != null
@@ -149,7 +154,7 @@ export default function DailyReportsScreen({ navigation }) {
         apiRequest(`/users/${user.userId}/checkins`)
             .then(data => {
                 const real = (data.checkins ?? []).map(checkinToReport);
-                if (real.length > 0) setReports([...real, ...MOCK_REPORTS]);
+                if (real.length > 0) setReports(real);
             })
             .catch(() => {}); // keep mock data on error
         return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };

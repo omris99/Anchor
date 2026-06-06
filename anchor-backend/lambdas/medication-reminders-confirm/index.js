@@ -1,14 +1,12 @@
 // POST /medication-reminders/{id}/confirm
 // Watch-authenticated (X-Watch-Key). Marks a medication as taken.
 // Updates Anchor_MedicationReminders (PK=user_id, SK=id) status="taken".
-// Also writes a transparency record to Anchor_Alerts and sends an Expo push
-// notification to the elder's mobile and all linked family members.
+// Sends an Expo push notification to the elder's mobile and all linked family members.
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   UpdateCommand,
-  PutCommand,
   GetCommand,
   QueryCommand,
   BatchGetCommand,
@@ -22,7 +20,6 @@ const ddb = DynamoDBDocumentClient.from(
 
 const USERS_TABLE          = process.env.USERS_TABLE          || "Anchor_Users";
 const MEDS_TABLE           = process.env.MEDS_TABLE           || "Anchor_MedicationReminders";
-const ALERTS_TABLE         = process.env.ALERTS_TABLE         || "Anchor_Alerts";
 const FAMILY_MEMBERS_TABLE = process.env.FAMILY_MEMBERS_TABLE || "Anchor_FamilyMembers";
 
 exports.handler = async (event) => {
@@ -52,18 +49,6 @@ exports.handler = async (event) => {
     }));
 
     const medicationName = updateResult.Attributes?.medication_name;
-
-    await ddb.send(new PutCommand({
-      TableName: ALERTS_TABLE,
-      Item: {
-        user_id: userId,
-        timestamp: tsIso,
-        type: "medication_taken",
-        medication_id: medicationId,
-        is_emergency: false,
-        status: "resolved",
-      },
-    }));
 
     try { await sendMedicationTakenPush(userId, medicationName); } catch {}
 
