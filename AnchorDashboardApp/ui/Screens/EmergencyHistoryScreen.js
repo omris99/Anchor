@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -10,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 
@@ -68,13 +69,16 @@ export default function EmergencyHistoryScreen({ navigation }) {
     const [realAlerts, setRealAlerts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (!user?.userId) { setIsLoading(false); return; }
-        apiRequest(`/users/${user.userId}/emergency-alerts`)
-            .then(data => setRealAlerts(data.alerts || []))
-            .catch(() => {})
-            .finally(() => setIsLoading(false));
-    }, [user?.userId]);
+    useFocusEffect(
+        useCallback(() => {
+            if (!user?.userId) { setIsLoading(false); return; }
+            setIsLoading(true);
+            apiRequest(`/users/${user.userId}/emergency-alerts`)
+                .then(data => setRealAlerts(data.alerts || []))
+                .catch(() => {})
+                .finally(() => setIsLoading(false));
+        }, [user?.userId])
+    );
 
     const allEvents = [
         ...realAlerts.map(a => ({ ...formatAlertForScreen(a), _key: `real-${a.id}` })),
@@ -124,7 +128,10 @@ export default function EmergencyHistoryScreen({ navigation }) {
                                 </View>
                                 <View style={styles.eventRow}>
                                     <Text style={styles.eventLabel}>סטטוס:</Text>
-                                    <Text style={styles.acknowledgedBadge}>טופל</Text>
+                                    {event.status === 'acknowledged'
+                                        ? <Text style={styles.acknowledgedBadge}>טופל</Text>
+                                        : <Text style={styles.pendingBadge}>ממתין לטיפול</Text>
+                                    }
                                 </View>
                             </TouchableOpacity>
                         ))
@@ -241,6 +248,15 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#2a9d5c',
         backgroundColor: '#e6f7ee',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 8,
+    },
+    pendingBadge: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#cc2222',
+        backgroundColor: '#fff0f0',
         paddingHorizontal: 10,
         paddingVertical: 3,
         borderRadius: 8,

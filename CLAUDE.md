@@ -27,7 +27,7 @@
 - Lambda auth endpoints: register ✅, login ✅, confirm ✅, verify-mfa ✅
 - Dashboard App:
   - מסכי auth (register, confirm, login) ✅
-  - HomeScreen ✅ — ניווט ל-5 מסכים ראשיים
+  - HomeScreen ✅ — ניווט ל-5 מסכים ראשיים + `WellnessStatusCard` (נקודה פועמת ירוק/צהוב/אדום, מתרענן עם `useFocusEffect`)
   - MedicationRemindersScreen ✅ — UI מלא (שם תרופה, שעה, ימים, רשימה), ממתין לחיבור backend (`/medication-reminders`)
   - HealthDataScreen ✅ — גרף חודשי, ניטור אחרון, מדדים חריגים, ייצוא PDF (stub)
   - DailyReportsScreen ✅ — דיווח יומי + היסטוריה, ממתין לחיבור backend (`/users/{id}/reports`)
@@ -53,7 +53,7 @@
 - **Daily Report** — חישוב בזמן אמת + OpenAI API לניתוח
 - **Watch Pairing** — QR code על השעון, הקשיש סורק מהדאשבורד
 - **Family Linking** — הזנת מספר טלפון + אישור הקשיש
-- **DynamoDB ScanCommand** — אל תוסיף `Limit` ל-Scan+FilterExpression — `Limit` מגביל הערכה לא תוצאות
+- **DynamoDB Limit+FilterExpression** — אל תוסיף `Limit` ל-Scan/Query עם `FilterExpression` — `Limit` מגביל הערכה לא תוצאות (גרם לבאגים ב-`resolveUserIdFromWatchKey` וב-`emergency-acknowledge`)
 - **Hebrew localization (Watch)** — תיקיית משאבים: `values-iw/` (לא `values-he/`). `localeFilters += listOf("en", "he", "iw")`. כל Activity מוסיף `attachBaseContext` עם `LocaleHelper.wrapContext(base)`. `DailyCheckInScreen` Row עטוף ב-`CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr)` כדי שסדר הפרצופים לא יתהפך.
 
 ## מה כבר בנוי (endpoints)
@@ -64,9 +64,11 @@
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
 - Medication reminders: GET /medication-reminders/{userId}, confirm (שולח Expo push לקשיש ולמשפחה עם שם התרופה), missed (watch) ✅
 - Emergency: POST /emergency (שומר + Expo push לקשיש ולמשפחה), POST /emergency/{id}/acknowledge ✅
+  - acknowledge מצפה ל-`user_id` ב-body (לא JWT claims — API GW `AuthorizationType: NONE`)
 - Emergency alerts: GET /users/{id}/emergency-alerts (JWT) ✅
 - Mobile FCM token: POST /users/{id}/mobile-fcm-token (JWT) — שמירת Expo Push Token של הדאשבורד ✅
 - User profile: GET /users/{id}/profile — מחזיר watch_id, watch_name, watch_paired_at (לדאשבורד, JWT auth) ✅
+- Wellness status: GET /users/{id}/status — מחזיר `{ status: "green"|"yellow"|"red", reason: string }`. לוגיקה: pending emergency → אדום, אין check-in → אדום/צהוב, תרופה missed → צהוב, אחרת ירוק ✅
 
 ## סדר endpoints שנשאר לבנות
 1. `/users/{id}/family/request`, `/users/{id}/family/approve`

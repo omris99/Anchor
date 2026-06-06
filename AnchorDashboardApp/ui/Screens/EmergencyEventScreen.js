@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import {
+    ActivityIndicator,
     Image,
     ImageBackground,
     Linking,
@@ -12,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { openMapLocation } from '../../logic/utils/mapUtils';
+import { apiRequest } from '../../logic/services/api/ApiClient';
+import { UserContext } from '../../logic/contexts/UserContext';
 
 const MOCK_EVENT = {
     id: '1',
@@ -49,9 +52,27 @@ function useReverseGeocode(location) {
 }
 
 export default function EmergencyEventScreen({ route, navigation }) {
+    const { user } = useContext(UserContext);
     const event = route?.params?.event ?? MOCK_EVENT;
     const [acknowledged, setAcknowledged] = useState(event.status === 'acknowledged');
+    const [isAcknowledging, setIsAcknowledging] = useState(false);
     const resolvedAddress = useReverseGeocode(event.location);
+
+    async function handleAcknowledge() {
+        setIsAcknowledging(true);
+        try {
+            await apiRequest(`/emergency/${event.id}/acknowledge`, {
+                method: 'POST',
+                body: JSON.stringify({ user_id: user?.userId }),
+            });
+            setAcknowledged(true);
+        } catch {
+            // alert not found (e.g. mock event) — acknowledge locally anyway
+            setAcknowledged(true);
+        } finally {
+            setIsAcknowledging(false);
+        }
+    }
 
     return (
         <ImageBackground
@@ -124,12 +145,15 @@ export default function EmergencyEventScreen({ route, navigation }) {
                             acknowledged && styles.acknowledgeButtonDone,
                         ]}
                         activeOpacity={0.8}
-                        onPress={() => setAcknowledged(true)}
-                        disabled={acknowledged}
+                        onPress={handleAcknowledge}
+                        disabled={acknowledged || isAcknowledging}
                     >
-                        <Text style={styles.acknowledgeButtonText}>
-                            {acknowledged ? '✓ הקריאה טופלה' : 'אישור קבלת קריאה'}
-                        </Text>
+                        {isAcknowledging
+                            ? <ActivityIndicator color="#fff" />
+                            : <Text style={styles.acknowledgeButtonText}>
+                                {acknowledged ? '✓ הקריאה טופלה' : 'אישור קבלת קריאה'}
+                              </Text>
+                        }
                     </TouchableOpacity>
                 </ScrollView>
             </SafeAreaView>

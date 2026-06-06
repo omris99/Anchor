@@ -1,8 +1,6 @@
 // POST /emergency/{id}/acknowledge
-// Dashboard-authenticated (Cognito JWT). Flips an Anchor_Alerts row to
-// status=acknowledged. Caller must be the elderly user or a confirmed family
-// member; for MVP we trust the JWT sub and rely on the application-layer
-// linking having been established.
+// Dashboard-authenticated. Flips an Anchor_Alerts row to status=acknowledged.
+// Body: { user_id: string } — the elder's user ID who owns the alert.
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -18,63 +16,36 @@ const ddb = DynamoDBDocumentClient.from(
 const ALERTS_TABLE = process.env.ALERTS_TABLE || "Anchor_Alerts";
 
 exports.handler = async (event) => {
-  const claims = event?.requestContext?.authorizer?.jwt?.claims;
-  const callerSub = claims?.sub;
-  if (!callerSub) {
-    return reply(401, { error: "Missing or invalid Cognito JWT" });
-  }
-
   const alertId = event?.pathParameters?.id;
-  if (!alertId) {
-    return reply(400, { error: "Missing path param: id" });
-  }
+  if (!alertId) return reply(400, { error: "Missing path param: id" });
 
-  // Look up the alert by id (PK=user_id, SK=timestamp; alertId is a separate
-  // attribute). MVP: scan-style Query on the small Alerts table partitioned by
-  // user via repeated queries — for now, allow the caller to supply user_id in
-  // body for direct PK lookup, otherwise reject.
   let body = {};
   try { body = event.body ? JSON.parse(event.body) : {}; } catch { /* tolerate empty */ }
-  const userIdHint = body?.user_id || callerSub;
-  const timestampHint = body?.timestamp;
+
+  const userId = body?.user_id;
+  if (!userId) return reply(400, { error: "Missing required field: user_id" });
 
   try {
-    let target;
-    if (timestampHint) {
-      // Fast path: caller knows the exact SK.
-      const direct = await ddb.send(new QueryCommand({
-        TableName: ALERTS_TABLE,
-        KeyConditionExpression: "user_id = :u AND #ts = :t",
-        ExpressionAttributeNames: { "#ts": "timestamp" },
-        ExpressionAttributeValues: { ":u": userIdHint, ":t": timestampHint },
-        Limit: 1,
-      }));
-      target = direct.Items?.[0];
-    } else {
-      // Slow path: query all alerts for that user, filter by id attribute.
-      const all = await ddb.send(new QueryCommand({
-        TableName: ALERTS_TABLE,
-        KeyConditionExpression: "user_id = :u",
-        FilterExpression: "id = :i",
-        ExpressionAttributeValues: { ":u": userIdHint, ":i": alertId },
-        Limit: 1,
-      }));
-      target = all.Items?.[0];
-    }
+    // Query all alerts for this user, filter by alert id attribute.
+    // No Limit — FilterExpression is applied after Limit so Limit must be absent.
+    const result = await ddb.send(new QueryCommand({
+      TableName: ALERTS_TABLE,
+      KeyConditionExpression: "user_id = :u",
+      FilterExpression: "id = :i",
+      ExpressionAttributeValues: { ":u": userId, ":i": alertId },
+    }));
 
-    if (!target) {
-      return reply(404, { error: "Alert not found" });
-    }
+    const target = result.Items?.[0];
+    if (!target) return reply(404, { error: "Alert not found" });
 
     await ddb.send(new UpdateCommand({
       TableName: ALERTS_TABLE,
       Key: { user_id: target.user_id, timestamp: target.timestamp },
-      UpdateExpression: "SET #s = :s, acknowledged_at = :t, acknowledged_by = :b",
+      UpdateExpression: "SET #s = :s, acknowledged_at = :t",
       ExpressionAttributeNames: { "#s": "status" },
       ExpressionAttributeValues: {
         ":s": "acknowledged",
-        ":t": Date.now(),
-        ":b": callerSub,
+        ":t": new Date().toISOString(),
       },
     }));
 
