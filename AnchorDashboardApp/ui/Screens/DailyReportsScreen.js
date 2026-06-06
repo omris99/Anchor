@@ -3,7 +3,6 @@ import {
     ActivityIndicator,
     Image,
     ImageBackground,
-    Linking,
     ScrollView,
     StyleSheet,
     Text,
@@ -13,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
+import { openMapLocation } from '../../logic/utils/mapUtils';
 
 // Shown when no real data is available yet (network error, not yet paired, etc.)
 const MOCK_REPORTS = [
@@ -77,10 +77,6 @@ function checkinToReport(checkin, index) {
     };
 }
 
-function openMapLocation(location) {
-    const url = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
-    Linking.openURL(url);
-}
 
 function ReportCard({ report, isFirst }) {
     const hasPending = report.medicationsPending.length > 0;

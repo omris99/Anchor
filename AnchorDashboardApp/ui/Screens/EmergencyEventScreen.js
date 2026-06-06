@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import {
     Image,
     ImageBackground,
+    Linking,
     ScrollView,
     StyleSheet,
     Text,
@@ -10,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { openMapLocation } from '../../logic/utils/mapUtils';
 
 const MOCK_EVENT = {
     id: '1',
@@ -97,15 +99,22 @@ export default function EmergencyEventScreen({ route, navigation }) {
                     {/* Location card */}
                     <View style={styles.card}>
                         <Text style={styles.sectionLabel}>מיקום אחרון:</Text>
-                        <View style={styles.mapPlaceholder}>
-                            <Text style={styles.mapPlaceholderText}>
-                                {resolvedAddress
-                                    ? `📍 ${resolvedAddress}`
-                                    : event.location
-                                        ? `📍 ${event.location.lat.toFixed(5)}, ${event.location.lng.toFixed(5)}`
-                                        : '📍 מיקום לא זמין'}
-                            </Text>
-                        </View>
+                        <Text style={styles.locationText}>
+                            {resolvedAddress
+                                ? `📍 ${resolvedAddress}`
+                                : event.location
+                                    ? `📍 ${event.location.lat.toFixed(5)}, ${event.location.lng.toFixed(5)}`
+                                    : '📍 מיקום לא זמין'}
+                        </Text>
+                        {event.location != null && (
+                            <TouchableOpacity
+                                style={styles.mapButton}
+                                activeOpacity={0.7}
+                                onPress={() => openMapLocation(event.location)}
+                            >
+                                <Text style={styles.mapButtonText}>מיקום על המפה</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     {/* Acknowledge button */}
@@ -249,19 +258,24 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#CC2222',
     },
-    mapPlaceholder: {
-        backgroundColor: '#F9F9F9',
-        borderRadius: 16,
-        height: 140,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#EEE',
-    },
-    mapPlaceholderText: {
+    locationText: {
         fontSize: 15,
         color: '#555',
         fontWeight: '500',
+        textAlign: 'right',
+        marginBottom: 14,
+    },
+    mapButton: {
+        backgroundColor: '#48AEBE',
+        borderRadius: 12,
+        height: 46,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mapButtonText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#fff',
     },
     acknowledgeButton: {
         backgroundColor: '#2A9D5C',
