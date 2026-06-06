@@ -48,6 +48,7 @@
 - **Push notifications** — FCM: שני סוגי silent push לשעון: `medication_sync` (סנכרון תרופות), `request_checkin` (פותח `CheckInActivity`). Push רגיל לדאשבורד על emergency
 - **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
 - **CheckInContext** — DTO (lat, lng, batteryPercent) שנשלח עם כל check-in מהשעון. מוסיפים שדות עתידיים רק כאן (לא ב-`CheckInEntity` שב-Room)
+- **Location (Watch)** — `utils/LocationProvider.kt` מכיל `suspend fun requestBestLocation(context)` משותף ל-`CheckInActivity` ול-`EmergencyService`. לוגיקה: last-known רענן (< 5 דק') → live fix מכל providers (עד 20 שניות) → null
 - **Checkins Lambda** — משתמש ב-`UpdateCommand` (לא `PutCommand`) כדי שretry ריק לא יחליף location אמיתי
 - **Daily Report** — חישוב בזמן אמת + OpenAI API לניתוח
 - **Watch Pairing** — QR code על השעון, הקשיש סורק מהדאשבורד

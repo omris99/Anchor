@@ -6,8 +6,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
@@ -22,6 +20,7 @@ import com.anchor.watch.data.local.EmergencyEventEntity
 import com.anchor.watch.data.local.EmergencyLocalStore
 import com.anchor.watch.data.local.EmergencyStore
 import com.anchor.watch.network.PartnerApi
+import com.anchor.watch.utils.requestBestLocation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -57,7 +56,7 @@ class EmergencyOrchestrator(
     private val store: EmergencyStore,
     private val api: EmergencyApi,
     private val onQueueForRetry: () -> Unit,
-    private val locationProvider: (() -> Pair<Double?, Double?>)? = null,
+    private val locationProvider: (suspend () -> Pair<Double?, Double?>)? = null,
     private val clock: () -> Long = System::currentTimeMillis,
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
@@ -127,7 +126,10 @@ class EmergencyService : Service() {
             // PartnerApiAdapter: was UnreachableEmergencyApi (SOURCE default stub).
             api = PartnerApi.emergency(applicationContext),
             onQueueForRetry = { EmergencySyncWorker.enqueue(applicationContext) },
-            locationProvider = { getLastKnownLocationNow() },
+            locationProvider = {
+                val location = requestBestLocation(applicationContext)
+                location?.latitude to location?.longitude
+            },
         )
         scope.launch {
             orchestrator.state.collect { liveState.value = it }
@@ -223,19 +225,6 @@ class EmergencyService : Service() {
     private fun stopAlarmRingtone() {
         activeAlarmRingtone?.stop()
         activeAlarmRingtone = null
-    }
-
-    private fun getLastKnownLocationNow(): Pair<Double?, Double?> {
-        if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
-        ) return null to null
-        val locationManager = getSystemService(LOCATION_SERVICE) as? LocationManager ?: return null to null
-        val location = runCatching {
-            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                ?: locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
-        }.getOrNull()
-        return (location?.latitude to location?.longitude)
     }
 
     private fun stopSelfSafe() {

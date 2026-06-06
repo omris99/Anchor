@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -128,7 +129,8 @@ fun SosScreen(
                                 contentColor = colorResource(R.color.text_primary),
                             ),
                             modifier = Modifier
-                                .size(64.dp)
+                                .height(52.dp)
+                                .width(140.dp)
                                 .semantics { contentDescription = cancelCd },
                         ) {
                             Text(

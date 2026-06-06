@@ -78,8 +78,8 @@ async function sendEmergencyPush(elderId, alertId, alertType, timestamp, locatio
 
   const messages = tokens.map(expoPushToken => ({
     to: expoPushToken,
-    title: "⚠️ קריאת חירום!",
-    body: alertType === "SOS" ? "הקשיש לחץ על כפתור SOS" : "זוהתה נפילה!",
+    title: "קריאת חירום!",
+    body: alertType === "SOS" ? "זוהתה לחיצה על כפתור SOS" : "זוהתה נפילה!",
     data: {
       type: "emergency",
       alertId,

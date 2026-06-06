@@ -148,7 +148,7 @@ fun MedicationReminderScreen(
                         contentColor = colorResource(R.color.text_on_colored),
                     ),
                     modifier = Modifier
-                        .defaultMinSize(minWidth = 96.dp, minHeight = 48.dp)
+                        .defaultMinSize(minWidth = 140.dp, minHeight = 48.dp)
                         .semantics { contentDescription = takenCd },
                 ) {
                     Text(

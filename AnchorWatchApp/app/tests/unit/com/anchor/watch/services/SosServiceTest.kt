@@ -28,7 +28,7 @@ class SosServiceTest {
 
     private class FakeApi(private val online: Boolean) : EmergencyApi {
         var calls = 0
-        override suspend fun submit(event: EmergencyEventEntity): Boolean {
+        override suspend fun submit(event: EmergencyEventEntity, lat: Double?, lng: Double?): Boolean {
             calls++
             return online
         }
