@@ -126,15 +126,15 @@ function FamilyMemberView() {
             Alert.alert('שגיאה', 'יש להזין מספר טלפון');
             return;
         }
-        // TODO: POST /users/{userId}/family/request — שליחת בקשת קישור לקשיש לפי טלפון
+        // TODO: POST /users/{userId}/family/request — שליחת בקשת קישור למבוגר לפי טלפון
         Alert.alert('בקשה נשלחה', `בקשת קישור נשלחה למספר ${phoneNumber.trim()}`);
         setPhoneNumber('');
     };
 
     return (
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>קישור עם קשיש</Text>
-            <Text style={styles.sectionDescription}>הזן את מספר הטלפון של הקשיש לשליחת בקשת קישור</Text>
+            <Text style={styles.sectionTitle}>קישור עם מבוגר</Text>
+            <Text style={styles.sectionDescription}>הזן את מספר הטלפון של המבוגר לשליחת בקשת קישור</Text>
             <TextInputField
                 placeholder="מספר טלפון"
                 value={phoneNumber}

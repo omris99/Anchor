@@ -46,6 +46,10 @@ class WatchFcmService : FirebaseMessagingService() {
             "medication_sync" -> scope.launch {
                 runCatching { MedicationScheduler.syncAndReschedule(applicationContext) }
             }
+            "medication_delete" -> {
+                val medId = message.data["med_id"] ?: return
+                MedicationAlarmService.cancel(applicationContext, medId)
+            }
             "request_checkin" -> {
                 val intent = Intent(applicationContext, CheckInActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

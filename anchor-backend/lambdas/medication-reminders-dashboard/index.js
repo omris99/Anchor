@@ -108,7 +108,7 @@ async function handleDelete(userId, medId) {
       TableName: MEDS_TABLE,
       Key: { user_id: userId, id: medId },
     }));
-    try { await sendMedicationSyncPush(userId); } catch {}
+    try { await sendMedicationDeletePush(userId, medId); } catch {}
     return reply(200, { deleted: true });
   } catch (err) {
     return reply(500, { error: err.message });
@@ -117,35 +117,31 @@ async function handleDelete(userId, medId) {
 
 // ─────────────────────────── FCM silent push ────────────────────────────────
 
-async function sendMedicationSyncPush(userId) {
+async function sendFcmPush(userId, data) {
   const fcmToken = await getWatchFcmToken(userId);
   if (!fcmToken) {
     console.log(`[FCM] No watch_fcm_token for user ${userId} — skipping push`);
     return;
   }
-
   const accessToken = await getFcmAccessToken();
   if (!accessToken) {
     console.log("[FCM] Failed to obtain FCM access token");
     return;
   }
-  console.log(`[FCM] Sending medication_sync push to user ${userId}`);
-
-  const message = {
-    message: {
-      token: fcmToken,
-      data: { type: "medication_sync" },
-      android: {
-        priority: "high",
-      },
-    },
-  };
-
+  console.log(`[FCM] Sending ${data.type} push to user ${userId}`);
   await postJson(
     `https://fcm.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/messages:send`,
-    message,
+    { message: { token: fcmToken, data, android: { priority: "high" } } },
     { Authorization: `Bearer ${accessToken}` }
   );
+}
+
+async function sendMedicationSyncPush(userId) {
+  await sendFcmPush(userId, { type: "medication_sync" });
+}
+
+async function sendMedicationDeletePush(userId, medId) {
+  await sendFcmPush(userId, { type: "medication_delete", med_id: medId });
 }
 
 async function getWatchFcmToken(userId) {

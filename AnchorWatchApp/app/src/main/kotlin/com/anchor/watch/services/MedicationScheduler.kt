@@ -25,10 +25,16 @@ import java.time.LocalTime
 class MedicationScheduler(
     private val repository: MedicationRepository,
     private val scheduleAlarm: (medicationId: String, triggerAtMillis: Long) -> Unit,
+    private val cancelAlarm: (medicationId: String) -> Unit = {},
     private val now: () -> LocalDateTime = LocalDateTime::now,
 ) {
     suspend fun run() {
+        val localIds = repository.localIds()
         val reminders = repository.today()
+        val remoteIds = reminders.map { it.id }.toSet()
+        for (id in localIds - remoteIds) {
+            cancelAlarm(id)
+        }
         val current = now()
         for (med in reminders) {
             // Skip reminders already resolved for this fire; only PENDING needs an alarm.
@@ -66,6 +72,9 @@ class MedicationScheduler(
                 repository = repository,
                 scheduleAlarm = { id, triggerMillis ->
                     MedicationAlarmService.schedule(appContext, id, triggerMillis)
+                },
+                cancelAlarm = { id ->
+                    MedicationAlarmService.cancel(appContext, id)
                 },
             ).run()
         }

@@ -1,14 +1,14 @@
 # Anchor — הנחיות לעבודה עם Claude Code
 
 ## מה הפרויקט
-מערכת מלאה לניטור קשישים, המורכבת משלושה רכיבים:
+מערכת מלאה לניטור מבוגרים, המורכבת משלושה רכיבים:
 
 - **AnchorWatchApp/** — אפליקציית Wear OS (Kotlin), כבר קיימת.  
-  רצה על שעון הקשיש. אחראית על: הצגת שעון, check-in יומי, תזכורות תרופות, כפתור SOS, זיהוי נפילות, שידור נתוני בריאות לbackend.  
+  רצה על שעון המבוגר. אחראית על: הצגת שעון, check-in יומי, תזכורות תרופות, כפתור SOS, זיהוי נפילות, שידור נתוני בריאות לbackend.  
   **עיצוב**: "כיוון 2 · חם" — רקע תכלת בהיר (`#D6E8F5`), טקסט כהה (`#1C2B3A`), כפתורי ביטול לבנים. Colors ב-`app/src/main/res/values/colors.xml`.
 
 - **Dashboard App** — אפליקציה cross-platform לנייד (React Native), **בפיתוח**.  
-  מיועדת לבני משפחה ומטפלים. תאפשר: מעקב אחרי מצב הקשיש בזמן אמת, צפייה בדוחות יומיים ונתוני בריאות, הגדרת תרופות ותזכורות, ניהול קישורים (קישור שעון + קישור בני משפחה), קבלת התראות חירום.  
+  מיועדת לבני משפחה ומטפלים. תאפשר: מעקב אחרי מצב המבוגר בזמן אמת, צפייה בדוחות יומיים ונתוני בריאות, הגדרת תרופות ותזכורות, ניהול קישורים (קישור שעון + קישור בני משפחה), קבלת התראות חירום.  
   פועלת על Android 14+ ו-iOS 18+.
 
 - **anchor-backend/** — AWS Backend (Lambda + API Gateway + DynamoDB + Cognito).  
@@ -32,8 +32,8 @@
   - HealthDataScreen ✅ — גרף חודשי, ניטור אחרון, מדדים חריגים, ייצוא PDF (stub)
   - DailyReportsScreen ✅ — דיווח יומי + היסטוריה. מציג: מצב רוח, סוללה, מיקום, תרופות שננטלו/שנותר לנטול (מגיעות מ-`checkin.medications` — snapshot שנשמר בזמן הcheck-in)
   - PreferencesScreen ✅ — toggles, תזכורות מים וארוחות, כפתור התנתקות אדום (logoutUser + Amplify signOut + setUser(null))
-  - LinkManagementScreen ✅ — route `connections`, תוכן לפי `user.userType`: קשיש רואה קישור שעון + אישור בקשות; בן משפחה רואה שליחת בקשה לפי טלפון
-  - WatchPairingScreen ✅ — route `watch-pairing`, סורק QR אמיתי (expo-camera), נגיש לקשיש בלבד. ממתין לחיבור backend (`/watch/pair`)
+  - LinkManagementScreen ✅ — route `connections`, תוכן לפי `user.userType`: מבוגר רואה קישור שעון + אישור בקשות; בן משפחה רואה שליחת בקשה לפי טלפון
+  - WatchPairingScreen ✅ — route `watch-pairing`, סורק QR אמיתי (expo-camera), נגיש למבוגר בלבד. ממתין לחיבור backend (`/watch/pair`)
 
 ## כללי עבודה
 - **ללא CDK** — רק CLI scripts. כל תשתית מוקמת דרך `anchor-backend/scripts/`
@@ -44,15 +44,15 @@
 ## ארכיטקטורה — נקודות מפתח
 - **שעון** מזדהה עם API Key (לא JWT) — header: `X-Watch-Key`
 - **watch_name** — נשמר ב-`Anchor_Users`. השעון שולח `device_name` ב-body של `POST /watch/init-pairing` → נשמר בrecord הזמני → מועבר לuser row בpairing. מוחזר מ-`GET /users/{id}/profile`.
-- **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי כשנוצרת תרופה חדשה
-- **Push notifications** — FCM: שני סוגי silent push לשעון: `medication_sync` (סנכרון תרופות), `request_checkin` (פותח `CheckInActivity`). Expo push לדאשבורד: `emergency` (SOS/נפילה), `medication_taken` (אישור נטילת תרופה עם שם התרופה)
+- **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי: יצירה → `medication_sync`, מחיקה → `medication_delete` עם `med_id` (ביטול אלרם ישיר בלי fetch כל הרשימה)
+- **Push notifications** — FCM: שלושה סוגי silent push לשעון: `medication_sync` (סנכרון תרופות אחרי יצירה), `medication_delete` (ביטול אלרם ספציפי אחרי מחיקה — כולל `med_id`), `request_checkin` (פותח `CheckInActivity`). Expo push לדאשבורד: `emergency` (SOS/נפילה), `medication_taken` (אישור נטילת תרופה עם שם התרופה)
 - **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
 - **CheckInContext** — DTO (lat, lng, batteryPercent) שנשלח עם כל check-in מהשעון. מוסיפים שדות עתידיים רק כאן (לא ב-`CheckInEntity` שב-Room)
 - **Location (Watch)** — `utils/LocationProvider.kt` מכיל `suspend fun requestBestLocation(context)` משותף ל-`CheckInActivity` ול-`EmergencyService`. לוגיקה: last-known רענן (< 5 דק') → live fix מכל providers (עד 20 שניות) → null
 - **Checkins Lambda** — משתמש ב-`UpdateCommand` (לא `PutCommand`) כדי שretry ריק לא יחליף location אמיתי. שומר snapshot של תרופות (`medications: [{id, name, scheduled_time, status}]`) בזמן הcheck-in עם `if_not_exists` — כך retry לא מחליף את הsnapshot המקורי ברשימה עדכנית
 - **Daily Report** — חישוב בזמן אמת + OpenAI API לניתוח
-- **Watch Pairing** — QR code על השעון, הקשיש סורק מהדאשבורד
-- **Family Linking** — הזנת מספר טלפון + אישור הקשיש
+- **Watch Pairing** — QR code על השעון, המבוגר סורק מהדאשבורד
+- **Family Linking** — הזנת מספר טלפון + אישור המבוגר
 - **DynamoDB Limit+FilterExpression** — אל תוסיף `Limit` ל-Scan/Query עם `FilterExpression` — `Limit` מגביל הערכה לא תוצאות (גרם לבאגים ב-`resolveUserIdFromWatchKey` וב-`emergency-acknowledge`)
 - **Hebrew localization (Watch)** — תיקיית משאבים: `values-iw/` (לא `values-he/`). `localeFilters += listOf("en", "he", "iw")`. כל Activity מוסיף `attachBaseContext` עם `LocaleHelper.wrapContext(base)`. `DailyCheckInScreen` Row עטוף ב-`CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr)` כדי שסדר הפרצופים לא יתהפך.
 
@@ -62,8 +62,8 @@
 - Checkins: POST /checkins (שומר lat/lng/battery_percent + snapshot תרופות), GET /users/{id}/checkins ✅
 - Checkins request: POST /users/{id}/checkins/request (JWT — שולח FCM request_checkin לשעון) ✅
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
-- Medication reminders: GET /medication-reminders/{userId}, confirm (שולח Expo push לקשיש ולמשפחה עם שם התרופה), missed (watch) ✅
-- Emergency: POST /emergency (שומר + Expo push לקשיש ולמשפחה), POST /emergency/{id}/acknowledge ✅
+- Medication reminders: GET /medication-reminders/{userId}, confirm (שולח Expo push למבוגר ולמשפחה עם שם התרופה), missed (watch) ✅
+- Emergency: POST /emergency (שומר + Expo push למבוגר ולמשפחה), POST /emergency/{id}/acknowledge ✅
   - acknowledge מצפה ל-`user_id` ב-body (לא JWT claims — API GW `AuthorizationType: NONE`)
 - Emergency alerts: GET /users/{id}/emergency-alerts (JWT) ✅
 - Mobile FCM token: POST /users/{id}/mobile-fcm-token (JWT) — שמירת Expo Push Token של הדאשבורד ✅

@@ -347,7 +347,7 @@ const handleAcknowledge = async () => {
 ### 🔴 3.1 `lambdas/family-request/index.js` — קובץ חדש
 
 **Route:** `POST /users/{id}/family/request` — JWT auth.
-בן משפחה שולח בקשת קישור לפי מספר טלפון של קשיש. מוצא את הקשיש ב-`Anchor_Users` (GSI על `phone`), יוצר רשומה ב-`Anchor_FamilyMembers` עם `status: "pending"`.
+בן משפחה שולח בקשת קישור לפי מספר טלפון של מבוגר. מוצא את המבוגר ב-`Anchor_Users` (GSI על `phone`), יוצר רשומה ב-`Anchor_FamilyMembers` עם `status: "pending"`.
 
 **⚠️ דרישת DynamoDB:** GSI על `Anchor_Users` לפי `phone` — להוסיף ל-`create-tables.sh`.
 
@@ -357,7 +357,7 @@ exports.handler = async (event) => {
     const requesterId = event?.requestContext?.authorizer?.jwt?.claims?.sub;
     const { phone_number } = JSON.parse(event.body || "{}");
 
-    // מצא קשיש לפי טלפון
+    // מצא מבוגר לפי טלפון
     const elderResult = await ddb.send(new ScanCommand({
         TableName: USERS_TABLE,
         FilterExpression: "phone = :p AND user_type = :t",
@@ -389,7 +389,7 @@ exports.handler = async (event) => {
 ### 🔴 3.2 `lambdas/family-list/index.js` — קובץ חדש
 
 **Route:** `GET /users/{id}/family/requests` — JWT auth.
-קשיש מושך בקשות ממתינות. שאילתה ב-`Anchor_FamilyMembers` לפי `elderly_user_id` (GSI קיים) עם `status = "pending"`.
+מבוגר מושך בקשות ממתינות. שאילתה ב-`Anchor_FamilyMembers` לפי `elderly_user_id` (GSI קיים) עם `status = "pending"`.
 
 ```javascript
 // GET /users/{id}/family/requests
@@ -466,7 +466,7 @@ const rejectRequest = (requestId) => {
 };
 // שורה 80: TODO: GET /users/{userId}/family/requests — טעינת בקשות קישור ממתינות
 const sendLinkRequest = () => {
-    // TODO: POST /users/{userId}/family/request — שליחת בקשת קישור לקשיש לפי טלפון
+    // TODO: POST /users/{userId}/family/request — שליחת בקשת קישור למבוגר לפי טלפון
 };
 ```
 
@@ -499,7 +499,7 @@ const sendLinkRequest = async () => {
             method: 'POST',
             body: JSON.stringify({ phone_number: phoneNumber }),
         });
-        Alert.alert('נשלח', 'הבקשה נשלחה — ממתין לאישור הקשיש');
+        Alert.alert('נשלח', 'הבקשה נשלחה — ממתין לאישור המבוגר');
         setPhoneNumber('');
     } catch (err) {
         Alert.alert('שגיאה', err.message);

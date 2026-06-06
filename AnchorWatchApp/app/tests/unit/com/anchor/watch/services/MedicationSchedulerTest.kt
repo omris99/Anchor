@@ -141,6 +141,31 @@ class MedicationSchedulerTest {
     }
 
     @Test
+    fun run_deletedReminder_cancelsAlarm() = runTest {
+        val store = FakeStore()
+        // Pre-populate local cache with two medications.
+        store.items["keep"] = MedicationEntity("keep", "אקמול", "09:00", MedicationStatus.PENDING, "self")
+        store.items["deleted"] = MedicationEntity("deleted", "ויטמין", "10:00", MedicationStatus.PENDING, "self")
+        // Remote only returns "keep" — "deleted" was removed from the server.
+        val remote = listOf(MedicationEntity("keep", "אקמול", "09:00", MedicationStatus.PENDING, "self"))
+        val repo = MedicationRepository(store = store, api = FakeApi(remote), onQueueForRetry = {})
+        val scheduled = mutableMapOf<String, Long>()
+        val cancelled = mutableListOf<String>()
+        val now = LocalDateTime.of(2026, 5, 16, 7, 0)
+
+        MedicationScheduler(
+            repository = repo,
+            scheduleAlarm = { id, trigger -> scheduled[id] = trigger },
+            cancelAlarm = { id -> cancelled.add(id) },
+            now = { now },
+        ).run()
+
+        assertTrue(cancelled.contains("deleted"))
+        assertTrue(scheduled.containsKey("keep"))
+        assertNull(scheduled["deleted"])
+    }
+
+    @Test
     fun run_remoteUnavailable_schedulesFromLocalCache() = runTest {
         val store = FakeStore()
         store.items["cached"] = MedicationEntity(

@@ -34,7 +34,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "נדרש כדי להציג את מיקום הקשיש בהתראות חירום."
+          "locationWhenInUsePermission": "נדרש כדי להציג את מיקום המבוגר בהתראות חירום."
         }
       ]
     ],

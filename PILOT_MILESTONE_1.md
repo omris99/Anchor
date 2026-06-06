@@ -168,7 +168,7 @@ started — tracked here so we don't lose them.**
 | # | Severity | Area | Issue |
 |---|----------|------|-------|
 | D1 | UX | Registration | Pressing **"Next"** on the keyboard from the **Last Name** field does not auto-focus the **Phone Number** field. |
-| D2 | i18n / Copy | Global | Change the Hebrew term **"קשיש" (Elderly) → "משתמש" (User)** everywhere it appears in the UI. |
+| D2 | i18n / Copy | Global | Change the Hebrew term **"מבוגר" (Elderly) → "משתמש" (User)** everywhere it appears in the UI. |
 | D3 | UX | Registration | The **Gender** and **User Type** selection controls are clunky/uncomfortable on a real mobile device — needs a more touch-friendly control. |
 | D4 | **Blocker** | Auth / Login | No working test username/password; **login fails**. |
 | D5 | **Blocker** | Auth / Registration | Registration flow **gets stuck** and won't let the user proceed into the app, despite the AWS backend being live. |

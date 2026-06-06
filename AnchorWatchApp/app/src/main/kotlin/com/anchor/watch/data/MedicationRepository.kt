@@ -27,6 +27,8 @@ class MedicationRepository(
 ) {
     suspend fun get(medicationId: String): MedicationEntity? = store.byId(medicationId)
 
+    suspend fun localIds(): Set<String> = store.all().map { it.id }.toSet()
+
     suspend fun today(): List<MedicationEntity> {
         val remote = runCatching { api.today(userIdProvider()) }.getOrNull()
         if (remote != null) {
