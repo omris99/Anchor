@@ -31,7 +31,7 @@ android {
         // from the legacy values-iw/), so the "he" filter actually matches the folder —
         // previously "he" did not match the "iw" qualifier and Hebrew could be stripped,
         // making a Hebrew selection fall back to English. "en" is the default values/.
-        localeFilters += listOf("en", "he")
+        localeFilters += listOf("en", "he", "iw")
     }
 
     buildTypes {

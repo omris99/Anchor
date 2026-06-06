@@ -1,6 +1,7 @@
 package com.anchor.watch
 
 import android.app.KeyguardManager
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -15,6 +16,10 @@ import com.anchor.watch.services.MedicationAlarmService
 import com.anchor.watch.utils.LocaleHelper
 
 class MedicationActivity : ComponentActivity() {
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleHelper.wrapContext(base))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Must be set before super.onCreate() so the window is created with these flags.

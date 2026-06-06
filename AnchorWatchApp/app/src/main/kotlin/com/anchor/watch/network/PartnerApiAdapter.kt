@@ -319,7 +319,6 @@ internal class PartnerCheckInApi(
 ) : CheckInApi {
     override suspend fun submit(entity: CheckInEntity, context: CheckInContext): Boolean =
         withContext(Dispatchers.IO) {
-            android.util.Log.d("PartnerCheckInApi", "submit: lat=${context.lat} lng=${context.lng} battery=${context.batteryPercent} status=${entity.status}")
             runCatching {
                 val dto = CheckInRequestDto(
                     event_id = entity.id,
@@ -331,7 +330,6 @@ internal class PartnerCheckInApi(
                     battery_percent = context.batteryPercent,
                 )
                 val response = service.submit(dto)
-                android.util.Log.d("PartnerCheckInApi", "response: ${response.code()} success=${response.isSuccessful}")
                 response.isSuccessful
             }.onFailure {
                 android.util.Log.e("PartnerCheckInApi", "submit failed", it)

@@ -53,6 +53,7 @@
 - **Watch Pairing** — QR code על השעון, הקשיש סורק מהדאשבורד
 - **Family Linking** — הזנת מספר טלפון + אישור הקשיש
 - **DynamoDB ScanCommand** — אל תוסיף `Limit` ל-Scan+FilterExpression — `Limit` מגביל הערכה לא תוצאות
+- **Hebrew localization (Watch)** — תיקיית משאבים: `values-iw/` (לא `values-he/`). `localeFilters += listOf("en", "he", "iw")`. כל Activity מוסיף `attachBaseContext` עם `LocaleHelper.wrapContext(base)`. `DailyCheckInScreen` Row עטוף ב-`CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr)` כדי שסדר הפרצופים לא יתהפך.
 
 ## מה כבר בנוי (endpoints)
 - Auth: register, login, confirm, verify-mfa ✅
@@ -70,5 +71,3 @@
 1. `/users/{id}/family/request`, `/users/{id}/family/approve`
 2. `/users/{id}/reports` (+ OpenAI)
 
-## cleanup נדרש לפני production
-- הסרת debug logs מ-`CheckInActivity.kt`, `DailyCheckInScreen.kt`, `PartnerApiAdapter.kt`

@@ -1,5 +1,6 @@
 package com.anchor.watch
 
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
@@ -8,7 +9,6 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -29,8 +29,8 @@ import kotlin.coroutines.resume
 
 class CheckInActivity : ComponentActivity() {
 
-    companion object {
-        private const val TAG = "CheckInActivity"
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleHelper.wrapContext(base))
     }
 
     // Updated in the background while the user sees the check-in screen.
@@ -57,7 +57,6 @@ class CheckInActivity : ComponentActivity() {
                 lat = location?.latitude,
                 lng = location?.longitude,
             )
-            Log.d(TAG, "context ready: lat=${checkInContext.lat} lng=${checkInContext.lng} battery=${checkInContext.batteryPercent}")
         }
 
         val repository = CheckInRepository(
@@ -82,14 +81,11 @@ class CheckInActivity : ComponentActivity() {
     // from all enabled providers simultaneously (up to 20 s).
     private suspend fun requestLocation(): Location? {
         val permissionGranted = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        Log.d(TAG, "location: permission granted=$permissionGranted")
         if (!permissionGranted) return null
 
         val lm = getSystemService(LOCATION_SERVICE) as LocationManager
 
-        val allProviders = lm.allProviders
-        val enabledProviders = allProviders.filter { runCatching { lm.isProviderEnabled(it) }.getOrDefault(false) }
-        Log.d(TAG, "location: allProviders=$allProviders enabledProviders=$enabledProviders")
+        val enabledProviders = lm.allProviders.filter { runCatching { lm.isProviderEnabled(it) }.getOrDefault(false) }
 
         val lastKnown = runCatching {
             lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
@@ -97,43 +93,34 @@ class CheckInActivity : ComponentActivity() {
                 ?: lm.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
         }.getOrNull()
         val lastKnownAgeMs = lastKnown?.let { System.currentTimeMillis() - it.time } ?: Long.MAX_VALUE
-        Log.d(TAG, "location: lastKnown=$lastKnown ageMs=$lastKnownAgeMs")
         // Only use cached location if it's fresh (under 5 minutes old)
         if (lastKnown != null && lastKnownAgeMs < 5 * 60 * 1_000L) return lastKnown
 
-        Log.d(TAG, "location: requesting live fix from providers=$enabledProviders")
         return withTimeoutOrNull(20_000L) {
             suspendCancellableCoroutine { cont ->
                 val listener = object : LocationListener {
                     override fun onLocationChanged(loc: Location) {
-                        Log.d(TAG, "location: fix received lat=${loc.latitude} lng=${loc.longitude} provider=${loc.provider}")
                         runCatching { lm.removeUpdates(this) }
                         cont.resume(loc)
                     }
                 }
                 if (enabledProviders.isEmpty()) {
-                    Log.e(TAG, "location: no enabled providers — cannot request fix")
                     cont.resume(null)
                 } else {
                     enabledProviders.forEach { provider ->
                         runCatching {
                             lm.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
-                            Log.d(TAG, "location: requestLocationUpdates registered for $provider")
-                        }.onFailure { Log.e(TAG, "location: requestLocationUpdates failed for $provider", it) }
+                        }
                     }
                 }
                 cont.invokeOnCancellation { runCatching { lm.removeUpdates(listener) } }
             }
-        }.also { result ->
-            if (result == null) Log.e(TAG, "location: timeout after 20s — no fix received")
         }
     }
 
     private fun readBatteryPercent(): Int? {
-        val bm = getSystemService(BATTERY_SERVICE) as? BatteryManager
-        if (bm == null) { Log.e(TAG, "battery: BatteryManager service is null"); return null }
+        val bm = getSystemService(BATTERY_SERVICE) as? BatteryManager ?: return null
         val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        Log.d(TAG, "battery: level=$level")
         return if (level >= 0) level else null
     }
 }

@@ -1,5 +1,6 @@
 package com.anchor.watch
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,6 +13,10 @@ import com.anchor.watch.utils.LanguagePreference
 import com.anchor.watch.utils.LocaleHelper
 
 class LanguageSelectionActivity : ComponentActivity() {
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleHelper.wrapContext(base))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -3,6 +3,7 @@ package com.anchor.watch.screens
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +22,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
@@ -33,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Scaffold
 import androidx.wear.compose.material.Text
@@ -77,7 +83,6 @@ fun DailyCheckInScreen(
             timeoutManager.stop()
             scope.launch {
                 val ctx = contextProvider()
-                android.util.Log.d("DailyCheckInScreen", "submit ctx: lat=${ctx.lat} lng=${ctx.lng} battery=${ctx.batteryPercent}")
                 repository.submit(status, ctx)
                 onFinished()
             }
@@ -120,6 +125,7 @@ fun DailyCheckInScreen(
 
                 Spacer(Modifier.height(12.dp))
 
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -127,19 +133,23 @@ fun DailyCheckInScreen(
                 ) {
                     CheckInEmojiButton(
                         emoji = "😢",
+                        borderColor = Color(0xFFF44336),
                         contentDescription = sadCd,
                         onClick = { onPick(CheckInStatus.Sad) },
                     )
                     CheckInEmojiButton(
                         emoji = "😐",
+                        borderColor = Color(0xFFFF9800),
                         contentDescription = neutralCd,
                         onClick = { onPick(CheckInStatus.Neutral) },
                     )
                     CheckInEmojiButton(
                         emoji = "😊",
+                        borderColor = Color(0xFF4CAF50),
                         contentDescription = happyCd,
                         onClick = { onPick(CheckInStatus.Happy) },
                     )
+                }
                 }
 
                 Spacer(Modifier.height(6.dp))
@@ -157,6 +167,7 @@ fun DailyCheckInScreen(
 @Composable
 private fun RowScope.CheckInEmojiButton(
     emoji: String,
+    borderColor: Color,
     contentDescription: String,
     onClick: () -> Unit,
 ) {
@@ -169,6 +180,7 @@ private fun RowScope.CheckInEmojiButton(
         modifier = Modifier
             .weight(1f)
             .height(64.dp)
+            .border(3.dp, borderColor, MaterialTheme.shapes.small)
             .semantics { this.contentDescription = contentDescription },
     ) {
         Text(text = emoji, fontSize = 30.sp)

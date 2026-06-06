@@ -2,6 +2,7 @@ package com.anchor.watch.utils
 
 import android.app.LocaleManager
 import android.content.Context
+import android.content.res.Configuration
 import android.os.LocaleList
 import android.text.TextUtils
 import android.view.View
@@ -37,6 +38,20 @@ object LocaleHelper {
         } else {
             LayoutDirection.Ltr
         }
+
+    /**
+     * Wraps [base] with a configuration-overridden context whose locale matches the
+     * saved language preference. Call from every Activity's attachBaseContext so that
+     * string resources resolve to the correct language even when LocaleManager hasn't
+     * propagated yet (e.g. activities started from alarms or FCM notifications).
+     */
+    fun wrapContext(base: Context): Context {
+        val lang = LanguagePreference.language(base) ?: return base
+        val locale = Locale.forLanguageTag(lang)
+        val config = Configuration(base.resources.configuration)
+        config.setLocale(locale)
+        return base.createConfigurationContext(config)
+    }
 
     /**
      * Persist & apply [language] (a BCP-47 tag, e.g. "he"/"en") through the platform API.
