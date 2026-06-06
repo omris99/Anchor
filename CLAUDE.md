@@ -45,7 +45,7 @@
 - **שעון** מזדהה עם API Key (לא JWT) — header: `X-Watch-Key`
 - **watch_name** — נשמר ב-`Anchor_Users`. השעון שולח `device_name` ב-body של `POST /watch/init-pairing` → נשמר בrecord הזמני → מועבר לuser row בpairing. מוחזר מ-`GET /users/{id}/profile`.
 - **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי כשנוצרת תרופה חדשה
-- **Push notifications** — FCM: שני סוגי silent push לשעון: `medication_sync` (סנכרון תרופות), `request_checkin` (פותח `CheckInActivity`). Push רגיל לדאשבורד על emergency
+- **Push notifications** — FCM: שני סוגי silent push לשעון: `medication_sync` (סנכרון תרופות), `request_checkin` (פותח `CheckInActivity`). Expo push לדאשבורד: `emergency` (SOS/נפילה), `medication_taken` (אישור נטילת תרופה עם שם התרופה)
 - **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
 - **CheckInContext** — DTO (lat, lng, batteryPercent) שנשלח עם כל check-in מהשעון. מוסיפים שדות עתידיים רק כאן (לא ב-`CheckInEntity` שב-Room)
 - **Location (Watch)** — `utils/LocationProvider.kt` מכיל `suspend fun requestBestLocation(context)` משותף ל-`CheckInActivity` ול-`EmergencyService`. לוגיקה: last-known רענן (< 5 דק') → live fix מכל providers (עד 20 שניות) → null
@@ -62,7 +62,7 @@
 - Checkins: POST /checkins (שומר lat/lng/battery_percent), GET /users/{id}/checkins ✅
 - Checkins request: POST /users/{id}/checkins/request (JWT — שולח FCM request_checkin לשעון) ✅
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
-- Medication reminders: GET /medication-reminders/{userId}, confirm, missed (watch) ✅
+- Medication reminders: GET /medication-reminders/{userId}, confirm (שולח Expo push לקשיש ולמשפחה עם שם התרופה), missed (watch) ✅
 - Emergency: POST /emergency (שומר + Expo push לקשיש ולמשפחה), POST /emergency/{id}/acknowledge ✅
 - Emergency alerts: GET /users/{id}/emergency-alerts (JWT) ✅
 - Mobile FCM token: POST /users/{id}/mobile-fcm-token (JWT) — שמירת Expo Push Token של הדאשבורד ✅

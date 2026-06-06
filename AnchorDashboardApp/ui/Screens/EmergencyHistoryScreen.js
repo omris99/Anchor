@@ -77,8 +77,8 @@ export default function EmergencyHistoryScreen({ navigation }) {
     }, [user?.userId]);
 
     const allEvents = [
-        ...realAlerts.map(formatAlertForScreen),
-        ...MOCK_EMERGENCY_EVENTS,
+        ...realAlerts.map(a => ({ ...formatAlertForScreen(a), _key: `real-${a.id}` })),
+        ...MOCK_EMERGENCY_EVENTS.map(e => ({ ...e, _key: `mock-${e.id}` })),
     ];
 
     return (
@@ -109,7 +109,7 @@ export default function EmergencyHistoryScreen({ navigation }) {
                     ) : (
                         allEvents.map(event => (
                             <TouchableOpacity
-                                key={event.id}
+                                key={event._key}
                                 style={styles.eventCard}
                                 activeOpacity={0.85}
                                 onPress={() => navigation.navigate('emergency-event', { event })}

@@ -55,20 +55,24 @@ function buildEmergencyEventFromNotification(notificationData) {
     };
 }
 
-function handleEmergencyNotification(notificationData) {
-    console.log('[Emergency] handleEmergencyNotification called, data:', JSON.stringify(notificationData));
-    if (notificationData?.type !== 'emergency') {
-        console.log('[Emergency] Ignored — type is not "emergency":', notificationData?.type);
-        return;
-    }
+function routeNotification(notificationData) {
+    const type = notificationData?.type;
+    console.log('[Notification] routeNotification called, type:', type);
     if (!navigationRef.isReady()) {
-        console.log('[Emergency] navigationRef not ready yet');
+        console.log('[Notification] navigationRef not ready yet');
         return;
     }
-    console.log('[Emergency] Navigating to emergency-event screen');
-    navigationRef.navigate('emergency-event', {
-        event: buildEmergencyEventFromNotification(notificationData),
-    });
+    if (type === 'emergency') {
+        console.log('[Notification] Navigating to emergency-event screen');
+        navigationRef.navigate('emergency-event', {
+            event: buildEmergencyEventFromNotification(notificationData),
+        });
+    } else if (type === 'medication_taken') {
+        console.log('[Notification] Navigating to medication-reminders screen');
+        navigationRef.navigate('medication-reminders');
+    } else {
+        console.log('[Notification] Ignored — unknown type:', type);
+    }
 }
 
 export default function App() {
@@ -118,7 +122,7 @@ export default function App() {
         Notifications.getLastNotificationResponseAsync().then(lastResponse => {
             console.log('[Emergency] getLastNotificationResponseAsync result:', JSON.stringify(lastResponse));
             if (lastResponse) {
-                handleEmergencyNotification(lastResponse.notification.request.content.data);
+                routeNotification(lastResponse.notification.request.content.data);
             }
         });
 
@@ -126,14 +130,14 @@ export default function App() {
         notificationResponseSubscription.current =
             Notifications.addNotificationResponseReceivedListener(response => {
                 console.log('[Emergency] addNotificationResponseReceivedListener fired, full response:', JSON.stringify(response));
-                handleEmergencyNotification(response.notification.request.content.data);
+                routeNotification(response.notification.request.content.data);
             });
 
         // Handle notification that arrives while the app is open in the foreground.
         notificationReceivedSubscription.current =
             Notifications.addNotificationReceivedListener(notification => {
                 console.log('[Emergency] addNotificationReceivedListener fired, full notification:', JSON.stringify(notification));
-                handleEmergencyNotification(notification.request.content.data);
+                routeNotification(notification.request.content.data);
             });
 
         return () => {
