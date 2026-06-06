@@ -5,6 +5,7 @@
 //   red    → no check-in ever, or last check-in > 48h ago
 //   yellow → missed medication in last 24h
 //   yellow → last check-in > 24h ago (but < 48h)
+//   yellow → last check-in had a sad mood
 //   green  → everything looks normal
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
@@ -85,6 +86,11 @@ exports.handler = async (event) => {
     // 4. No check-in today → yellow
     if (lastCheckinMs < now - 24 * 60 * 60 * 1000) {
       return reply(200, { status: "yellow", reason: "אין דיווח מהיום" });
+    }
+
+    // 5. Last check-in was a sad face → yellow
+    if (lastCheckin.status === "sad") {
+      return reply(200, { status: "yellow", reason: "בדיווח האחרון התקבל רגש עצוב" });
     }
 
     return reply(200, { status: "green", reason: "הכל נראה תקין" });
