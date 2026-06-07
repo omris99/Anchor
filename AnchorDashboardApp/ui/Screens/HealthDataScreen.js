@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     Image,
     ImageBackground,
@@ -11,13 +12,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
+import { useFocusEffect } from '@react-navigation/native';
+import { UserContext } from '../../logic/contexts/UserContext';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const METRICS = [
     { key: 'heartRate', label: 'דופק' },
     { key: 'steps', label: 'צעדים' },
-    { key: 'sleep', label: 'שינה' },
 ];
 
 // TODO: LOAD — יש לטעון נתוני בריאות אמיתיים מהשרת.
@@ -57,14 +60,28 @@ const LAST_MONITORING = {
     steps: 2100,
 };
 
-const ABNORMAL_METRICS = [
-    { name: 'צעדים', currentValue: '2,100 צעדים', normalRange: '3,000–8,000 צעדים' },
-    { name: 'שינה', currentValue: '5.0 שעות', normalRange: '7–9 שעות' },
-];
-
 export default function HealthDataScreen({ navigation }) {
+    const { user } = useContext(UserContext);
     const [selectedMetric, setSelectedMetric] = useState('heartRate');
+    const [latestMetrics, setLatestMetrics] = useState(null);
+    const [loadingMetrics, setLoadingMetrics] = useState(true);
     const metricData = MOCK_DATA[selectedMetric];
+
+    const stepsValue = latestMetrics?.steps ?? LAST_MONITORING.steps;
+    const abnormalMetrics = [
+        { name: 'צעדים', currentValue: `${stepsValue.toLocaleString()} צעדים`, normalRange: '3,000–8,000 צעדים' },
+        { name: 'שינה', currentValue: '5.0 שעות', normalRange: '7–9 שעות' },
+    ];
+
+    useFocusEffect(
+        useCallback(() => {
+            setLoadingMetrics(true);
+            apiRequest(`/users/${user.userId}/health-metrics/latest`)
+                .then(data => setLatestMetrics(data.latest))
+                .catch(() => {})
+                .finally(() => setLoadingMetrics(false));
+        }, [user.userId])
+    );
 
     const chartConfig = {
         backgroundGradientFrom: '#fff',
@@ -73,7 +90,7 @@ export default function HealthDataScreen({ navigation }) {
         labelColor: () => '#666',
         strokeWidth: 2,
         propsForDots: { r: '4', strokeWidth: '2', stroke: '#2a838f' },
-        decimalPlaces: selectedMetric === 'sleep' ? 1 : 0,
+        decimalPlaces: 0,
     };
 
     return (
@@ -143,32 +160,35 @@ export default function HealthDataScreen({ navigation }) {
 
                     {/* Last monitoring */}
                     <View style={styles.card}>
-                        <Text style={styles.sectionLabel}>
-                            ניטור אחרון ({LAST_MONITORING.timestamp})
-                        </Text>
-                        <View style={styles.metricRow}>
-                            <Text style={styles.metricName}>דופק:</Text>
-                            <Text style={styles.metricValue}>{LAST_MONITORING.heartRate} BPM</Text>
-                        </View>
-                        <View style={styles.metricRow}>
-                            <Text style={styles.metricName}>שינה:</Text>
-                            <Text style={styles.metricValue}>
-                                {LAST_MONITORING.sleepHours} שע׳ · {LAST_MONITORING.sleepQuality}
-                            </Text>
-                        </View>
-                        <View style={styles.metricRow}>
-                            <Text style={styles.metricName}>מד צעדים:</Text>
-                            <Text style={styles.metricValue}>
-                                {LAST_MONITORING.steps.toLocaleString()} צעדים
-                            </Text>
-                        </View>
+                        {loadingMetrics ? (
+                            <ActivityIndicator color="#48AEBE" style={{ paddingVertical: 16 }} />
+                        ) : (() => {
+                            const ts = latestMetrics?.timestamp
+                                ? new Date(latestMetrics.timestamp).toLocaleString('he-IL')
+                                : LAST_MONITORING.timestamp;
+                            const hr = latestMetrics?.heart_rate ?? LAST_MONITORING.heartRate;
+                            const steps = latestMetrics?.steps ?? LAST_MONITORING.steps;
+                            return (
+                                <>
+                                    <Text style={styles.sectionLabel}>ניטור אחרון ({ts})</Text>
+                                    <View style={styles.metricRow}>
+                                        <Text style={styles.metricName}>דופק:</Text>
+                                        <Text style={styles.metricValue}>{hr} BPM</Text>
+                                    </View>
+                                    <View style={styles.metricRow}>
+                                        <Text style={styles.metricName}>מד צעדים:</Text>
+                                        <Text style={styles.metricValue}>{steps.toLocaleString()} צעדים</Text>
+                                    </View>
+                                </>
+                            );
+                        })()}
                     </View>
 
                     {/* Abnormal metrics */}
-                    {ABNORMAL_METRICS.length > 0 && (
+                    {abnormalMetrics.length > 0 && (
                         <View style={[styles.card, styles.abnormalCard]}>
                             <Text style={styles.abnormalTitle}>מדדים שזוהו כחריגים:</Text>
-                            {ABNORMAL_METRICS.map((item, index) => (
+                            {abnormalMetrics.map((item, index) => (
                                 <View key={index} style={styles.abnormalRow}>
                                     <Text style={styles.abnormalRange}>
                                         טווח ממוצע נורמלי — {item.normalRange}

@@ -1,13 +1,30 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useCallback } from 'react';
 import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import ClassicButton from '../components/ClassicButton';
 import WellnessStatusCard from '../components/WellnessStatusCard';
 import { UserContext } from '../../logic/contexts/UserContext';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen({ navigation }) {
-    const { user } = useContext(UserContext);
+    const { user, pushToken } = useContext(UserContext);
     const greet = user ? `שלום, ${user.firstName}` : 'שלום';
+    const [connectivity, setConnectivity] = useState(null);
+
+    useFocusEffect(useCallback(() => {
+        if (!user?.userId) return;
+        apiRequest(`/users/${user.userId}/profile`)
+            .then(data => setConnectivity(data))
+            .catch(() => setConnectivity(null));
+    }, [user?.userId]));
+
+    const allConnected = !!(
+        pushToken &&
+        connectivity?.watch_paired_at &&
+        connectivity?.watch_fcm_registered &&
+        connectivity?.mobile_push_registered
+    );
 
     return (
         <ImageBackground
@@ -69,6 +86,7 @@ export default function HomeScreen({ navigation }) {
                 >
                     העדפות
                 </ClassicButton>
+                <View style={[styles.connectivityDot, { backgroundColor: allConnected ? '#27ae60' : '#bbb' }]} />
             </View>
         </SafeAreaView>
         </ImageBackground>
@@ -118,5 +136,13 @@ const styles = StyleSheet.create({
     },
     settingsText: {
         color: '#fff',
+    },
+    connectivityDot: {
+        marginTop: 'auto',
+        alignSelf: 'flex-start',
+        width: 12,
+        height: 10,
+        borderRadius: 4,
+        marginBottom: 6,
     },
 });

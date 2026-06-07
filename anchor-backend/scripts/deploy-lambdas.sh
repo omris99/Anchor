@@ -79,10 +79,11 @@ deploy_lambda "checkins-get"     "checkins-get"
 deploy_lambda "checkins-request" "checkins-request"
 
 # Medication reminders
-deploy_lambda "medication-reminders-get"       "medication-reminders-get"
-deploy_lambda "medication-reminders-confirm"   "medication-reminders-confirm"
-deploy_lambda "medication-reminders-missed"    "medication-reminders-missed"
-deploy_lambda "medication-reminders-dashboard" "medication-reminders-dashboard"
+deploy_lambda "medication-reminders-get"          "medication-reminders-get"
+deploy_lambda "medication-reminders-confirm"      "medication-reminders-confirm"
+deploy_lambda "medication-reminders-missed"       "medication-reminders-missed"
+deploy_lambda "medication-reminders-schedule-ack" "medication-schedule-ack"
+deploy_lambda "medication-reminders-dashboard"    "medication-reminders-dashboard"
 
 # Emergency
 deploy_lambda "emergency"             "emergency"
@@ -94,6 +95,13 @@ deploy_lambda "mobile-fcm-token" "mobile-fcm-token"
 
 # User profile
 deploy_lambda "user-profile" "user-profile"
+
+# User wellness status
+deploy_lambda "user-status" "user-status"
+
+# Health metrics (watch → dashboard)
+deploy_lambda "health-metrics-post" "health-metrics-post"
+deploy_lambda "health-metrics-get"  "health-metrics-get"
 
 echo ""
 echo "[3/3] Done!"

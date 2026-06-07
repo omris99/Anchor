@@ -61,9 +61,10 @@ add_route "checkins-get"     "GET"  "/users/{id}/checkins"
 add_route "checkins-request" "POST" "/users/{id}/checkins/request"
 
 # --- Medication reminders (watch — X-Watch-Key) ---
-add_route "medication-reminders-get"     "GET"  "/medication-reminders/{userId}"
-add_route "medication-reminders-confirm" "POST" "/medication-reminders/{id}/confirm"
-add_route "medication-reminders-missed"  "POST" "/medication-reminders/{id}/missed"
+add_route "medication-reminders-get"          "GET"  "/medication-reminders/{userId}"
+add_route "medication-reminders-confirm"      "POST" "/medication-reminders/{id}/confirm"
+add_route "medication-reminders-missed"       "POST" "/medication-reminders/{id}/missed"
+add_route "medication-reminders-schedule-ack" "POST" "/medication-reminders/{id}/schedule-ack"
 
 # --- Medication reminders (dashboard — JWT) ---
 add_route "medication-reminders-dashboard" "GET"    "/users/{id}/medication-reminders"
@@ -79,6 +80,13 @@ add_route "mobile-fcm-token" "POST" "/users/{id}/mobile-fcm-token"
 
 # --- User profile ---
 add_route "user-profile" "GET" "/users/{id}/profile"
+
+# --- User wellness status ---
+add_route "user-status" "GET" "/users/{id}/status"
+
+# --- Health metrics ---
+add_route "health-metrics-post" "POST" "/health-metrics"
+add_route "health-metrics-get"  "GET"  "/users/{id}/health-metrics/latest"
 
 echo ""
 echo "All routes added. API is live at:"

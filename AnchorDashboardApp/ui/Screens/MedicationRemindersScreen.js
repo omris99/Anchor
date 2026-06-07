@@ -40,6 +40,7 @@ function serverMedToLocal(med) {
         name: med.medication_name,
         time,
         days: med.days_of_week ?? [0, 1, 2, 3, 4, 5, 6],
+        watchScheduled: !!med.watch_scheduled_at,
     };
 }
 
@@ -53,16 +54,26 @@ export default function MedicationRemindersScreen({ navigation }) {
     });
     const [selectedDays, setSelectedDays] = useState([]);
     const [reminders, setReminders] = useState([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const [isPickerVisible, setIsPickerVisible] = useState(false);
     const [pendingTime, setPendingTime] = useState(selectedTime);
 
+    const loadReminders = async () => {
+        try {
+            const data = await apiRequest(`/users/${user.userId}/medication-reminders`);
+            setReminders((data.medications ?? []).map(serverMedToLocal));
+        } catch {}
+    };
+
     // Load existing reminders from the server when the screen opens.
-    useEffect(() => {
-        apiRequest(`/users/${user.userId}/medication-reminders`)
-            .then(data => setReminders((data.medications ?? []).map(serverMedToLocal)))
-            .catch(() => {});
-    }, []);
+    useEffect(() => { loadReminders(); }, []);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await loadReminders();
+        setIsRefreshing(false);
+    };
 
     const openTimePicker = () => {
         setPendingTime(selectedTime);
@@ -124,6 +135,12 @@ export default function MedicationRemindersScreen({ navigation }) {
                 <Text style={styles.reminderName}>{item.name}</Text>
                 <Text style={styles.reminderDetail}>{formatTime(item.time)}</Text>
                 <Text style={styles.reminderDetail}>{formatDays(item.days)}</Text>
+                <View style={styles.watchStatusRow}>
+                    <View style={[styles.watchStatusDot, item.watchScheduled ? styles.dotGreen : styles.dotOrange]} />
+                    <Text style={[styles.watchStatusText, item.watchScheduled ? styles.textGreen : styles.textOrange]}>
+                        {item.watchScheduled ? 'מוגדרת' : 'ממתינה'}
+                    </Text>
+                </View>
             </View>
             <TouchableOpacity onPress={() => removeReminder(item.id)} style={styles.deleteButton}>
                 <Text style={styles.deleteText}>הסר</Text>
@@ -179,7 +196,17 @@ export default function MedicationRemindersScreen({ navigation }) {
                             </ClassicButton>
 
                             {reminders.length > 0 && (
-                                <Text style={styles.existingTitle}>תזכורות קיימות:</Text>
+                                <View style={styles.existingTitleRow}>
+                                    <TouchableOpacity
+                                        style={[styles.refreshButton, isRefreshing && styles.refreshButtonDisabled]}
+                                        onPress={handleRefresh}
+                                        disabled={isRefreshing}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.refreshIcon}>{isRefreshing ? '…' : '↻'}</Text>
+                                    </TouchableOpacity>
+                                    <Text style={styles.existingTitle}>תזכורות קיימות:</Text>
+                                </View>
                             )}
                         </View>
                     }
@@ -309,13 +336,36 @@ const styles = StyleSheet.create({
         width: '100%',
         alignSelf: 'center',
     },
+    existingTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        marginTop: 24,
+        marginBottom: 4,
+        gap: 10,
+    },
     existingTitle: {
         fontSize: 17,
         fontWeight: '700',
         color: '#444',
         textAlign: 'right',
-        marginTop: 24,
-        marginBottom: 4,
+    },
+    refreshButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#48AEBE',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    refreshButtonDisabled: {
+        backgroundColor: '#a0d4df',
+    },
+    refreshIcon: {
+        fontSize: 18,
+        color: '#fff',
+        fontWeight: '700',
+        lineHeight: 20,
     },
     listContent: {
         paddingBottom: 30,
@@ -358,6 +408,33 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '600',
         fontSize: 14,
+    },
+    watchStatusRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        marginTop: 5,
+        gap: 5,
+    },
+    watchStatusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    dotGreen: {
+        backgroundColor: '#27ae60',
+    },
+    dotOrange: {
+        backgroundColor: '#e67e22',
+    },
+    watchStatusText: {
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    textGreen: {
+        color: '#27ae60',
+    },
+    textOrange: {
+        color: '#e67e22',
     },
     modalOverlay: {
         flex: 1,
