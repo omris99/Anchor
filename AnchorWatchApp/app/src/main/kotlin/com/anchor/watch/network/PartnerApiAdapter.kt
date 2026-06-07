@@ -151,6 +151,9 @@ internal interface PartnerMedicationService {
         @Path("id") medicationId: String,
         @Body body: MedicationStatusDto,
     ): retrofit2.Response<Unit>
+
+    @POST("medication-reminders/{id}/schedule-ack")
+    suspend fun scheduleAck(@Path("id") medicationId: String): retrofit2.Response<Unit>
 }
 
 internal interface PartnerCheckInService {
@@ -315,6 +318,13 @@ internal class PartnerMedicationApi(
         withContext(Dispatchers.IO) {
             runCatching {
                 service.missed(medicationId, MedicationStatusDto(timestamp)).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    override suspend fun scheduleAck(medicationId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                service.scheduleAck(medicationId).isSuccessful
             }.getOrDefault(false)
         }
 

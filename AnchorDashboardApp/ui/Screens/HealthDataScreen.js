@@ -60,17 +60,18 @@ const LAST_MONITORING = {
     steps: 2100,
 };
 
-const ABNORMAL_METRICS = [
-    { name: 'צעדים', currentValue: '2,100 צעדים', normalRange: '3,000–8,000 צעדים' },
-    { name: 'שינה', currentValue: '5.0 שעות', normalRange: '7–9 שעות' },
-];
-
 export default function HealthDataScreen({ navigation }) {
     const { user } = useContext(UserContext);
     const [selectedMetric, setSelectedMetric] = useState('heartRate');
     const [latestMetrics, setLatestMetrics] = useState(null);
     const [loadingMetrics, setLoadingMetrics] = useState(true);
     const metricData = MOCK_DATA[selectedMetric];
+
+    const stepsValue = latestMetrics?.steps ?? LAST_MONITORING.steps;
+    const abnormalMetrics = [
+        { name: 'צעדים', currentValue: `${stepsValue.toLocaleString()} צעדים`, normalRange: '3,000–8,000 צעדים' },
+        { name: 'שינה', currentValue: '5.0 שעות', normalRange: '7–9 שעות' },
+    ];
 
     useFocusEffect(
         useCallback(() => {
@@ -184,10 +185,10 @@ export default function HealthDataScreen({ navigation }) {
                     </View>
 
                     {/* Abnormal metrics */}
-                    {ABNORMAL_METRICS.length > 0 && (
+                    {abnormalMetrics.length > 0 && (
                         <View style={[styles.card, styles.abnormalCard]}>
                             <Text style={styles.abnormalTitle}>מדדים שזוהו כחריגים:</Text>
-                            {ABNORMAL_METRICS.map((item, index) => (
+                            {abnormalMetrics.map((item, index) => (
                                 <View key={index} style={styles.abnormalRow}>
                                     <Text style={styles.abnormalRange}>
                                         טווח ממוצע נורמלי — {item.normalRange}

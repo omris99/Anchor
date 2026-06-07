@@ -79,10 +79,11 @@ deploy_lambda "checkins-get"     "checkins-get"
 deploy_lambda "checkins-request" "checkins-request"
 
 # Medication reminders
-deploy_lambda "medication-reminders-get"       "medication-reminders-get"
-deploy_lambda "medication-reminders-confirm"   "medication-reminders-confirm"
-deploy_lambda "medication-reminders-missed"    "medication-reminders-missed"
-deploy_lambda "medication-reminders-dashboard" "medication-reminders-dashboard"
+deploy_lambda "medication-reminders-get"          "medication-reminders-get"
+deploy_lambda "medication-reminders-confirm"      "medication-reminders-confirm"
+deploy_lambda "medication-reminders-missed"       "medication-reminders-missed"
+deploy_lambda "medication-reminders-schedule-ack" "medication-schedule-ack"
+deploy_lambda "medication-reminders-dashboard"    "medication-reminders-dashboard"
 
 # Emergency
 deploy_lambda "emergency"             "emergency"

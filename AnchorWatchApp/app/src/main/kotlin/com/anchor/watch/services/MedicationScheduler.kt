@@ -46,6 +46,7 @@ class MedicationScheduler(
                 allowedDays = med.daysOfWeek.toSet(),
             )
             scheduleAlarm(med.id, triggerMillis)
+            repository.scheduleAck(med.id)
         }
     }
 

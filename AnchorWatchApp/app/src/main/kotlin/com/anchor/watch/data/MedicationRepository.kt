@@ -10,12 +10,14 @@ interface MedicationApi {
     suspend fun today(userId: String): List<MedicationEntity>?
     suspend fun confirm(medicationId: String, timestamp: Long): Boolean
     suspend fun miss(medicationId: String, timestamp: Long): Boolean
+    suspend fun scheduleAck(medicationId: String): Boolean
 }
 
 object UnreachableMedicationApi : MedicationApi {
     override suspend fun today(userId: String): List<MedicationEntity>? = null
     override suspend fun confirm(medicationId: String, timestamp: Long): Boolean = false
     override suspend fun miss(medicationId: String, timestamp: Long): Boolean = false
+    override suspend fun scheduleAck(medicationId: String): Boolean = false
 }
 
 class MedicationRepository(
@@ -48,6 +50,11 @@ class MedicationRepository(
         markStatus(medicationId, MedicationStatus.MISSED) { ts ->
             api.miss(medicationId, ts)
         }
+    }
+
+    suspend fun scheduleAck(medicationId: String) {
+        runCatching { api.scheduleAck(medicationId) }
+        // Fire-and-forget: if this fails, the periodic 15-min sync will re-ack on next schedule.
     }
 
     private suspend fun markStatus(

@@ -61,9 +61,10 @@ add_route "checkins-get"     "GET"  "/users/{id}/checkins"
 add_route "checkins-request" "POST" "/users/{id}/checkins/request"
 
 # --- Medication reminders (watch — X-Watch-Key) ---
-add_route "medication-reminders-get"     "GET"  "/medication-reminders/{userId}"
-add_route "medication-reminders-confirm" "POST" "/medication-reminders/{id}/confirm"
-add_route "medication-reminders-missed"  "POST" "/medication-reminders/{id}/missed"
+add_route "medication-reminders-get"          "GET"  "/medication-reminders/{userId}"
+add_route "medication-reminders-confirm"      "POST" "/medication-reminders/{id}/confirm"
+add_route "medication-reminders-missed"       "POST" "/medication-reminders/{id}/missed"
+add_route "medication-reminders-schedule-ack" "POST" "/medication-reminders/{id}/schedule-ack"
 
 # --- Medication reminders (dashboard — JWT) ---
 add_route "medication-reminders-dashboard" "GET"    "/users/{id}/medication-reminders"

@@ -74,6 +74,7 @@ function routeNotification(notificationData) {
 
 export default function App() {
     const [user, setUser] = useState(null);
+    const [pushToken, setPushToken] = useState(null);
     const notificationResponseSubscription = useRef(null);
     const notificationReceivedSubscription = useRef(null);
 
@@ -104,6 +105,7 @@ export default function App() {
                     body: JSON.stringify({ fcm_token: expoPushToken }),
                 });
                 console.log('[Push] Expo push token registered successfully for user:', user.userId);
+                setPushToken(expoPushToken);
             } catch (error) {
                 console.log('[Push] Push token registration failed:', error?.message);
             }
@@ -145,7 +147,7 @@ export default function App() {
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
-            <UserContext.Provider value={{ user, setUser }}>
+            <UserContext.Provider value={{ user, setUser, pushToken }}>
                 <NavigationContainer ref={navigationRef}>
                     <Stack.Navigator initialRouteName="welcome">
                         <Stack.Screen

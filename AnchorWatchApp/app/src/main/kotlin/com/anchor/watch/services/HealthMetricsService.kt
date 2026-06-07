@@ -1,6 +1,7 @@
 package com.anchor.watch.services
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.concurrent.futures.await
 import androidx.health.services.client.HealthServices
@@ -12,39 +13,40 @@ import com.anchor.watch.network.PartnerApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 // Health Services manages the lifecycle of this service — the OS wakes it up
 // to deliver batched data, then destroys it. SensorManager would be useless here
 // since listeners only live while the service is alive between HR deliveries.
 // Both HR and steps are requested from Health Services so they arrive together.
+// Steps are persisted across invocations because STEPS_DAILY is a delta type —
+// it only arrives when the user takes new steps, not on every HR delivery.
 class HealthMetricsService : PassiveListenerService() {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private var latestHeartRate: Int? = null
-    private var latestSteps: Int? = null
+    private val prefs: SharedPreferences by lazy {
+        applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
 
     override fun onNewDataPointsReceived(dataPoints: DataPointContainer) {
         val hrPoints = dataPoints.getData(DataType.HEART_RATE_BPM)
         val heartRate = hrPoints.lastOrNull()?.value?.toInt()
-        if (heartRate != null) latestHeartRate = heartRate
 
-        // STEPS_DAILY: DeltaDataType<Long, IntervalDataPoint<Long>> — confirmed in JAR
+        // STEPS_DAILY: DeltaDataType<Long, IntervalDataPoint<Long>> — confirmed in JAR.
+        // Only arrives when new steps occur, so we persist the last known value.
         val stepPoints = dataPoints.getData(DataType.STEPS_DAILY)
-        val steps = stepPoints.lastOrNull()?.value?.toInt()
-        if (steps != null) latestSteps = steps
+        val newSteps = stepPoints.lastOrNull()?.value?.toInt()
+        if (newSteps != null) prefs.edit().putInt(KEY_LAST_STEPS, newSteps).apply()
+        val steps = newSteps ?: prefs.getInt(KEY_LAST_STEPS, -1).takeIf { it >= 0 }
 
-        Log.d(TAG, "Data received — heartRate=$heartRate, steps=$steps")
+        Log.d(TAG, "Data received — heartRate=$heartRate, steps=$steps (delta=${newSteps})")
 
-        if (heartRate != null || steps != null) {
-            postMetrics()
+        if (heartRate != null || newSteps != null) {
+            postMetrics(heartRate, steps)
         }
     }
 
-    private fun postMetrics() {
-        val hr = latestHeartRate
-        val steps = latestSteps
+    private fun postMetrics(hr: Int?, steps: Int?) {
         scope.launch {
             val ok = runCatching {
                 PartnerApi.healthMetrics(applicationContext).post(hr, steps)
@@ -65,6 +67,8 @@ class HealthMetricsService : PassiveListenerService() {
 
     companion object {
         private const val TAG = "HealthMetricsService"
+        private const val PREFS_NAME = "health_metrics"
+        private const val KEY_LAST_STEPS = "last_steps"
 
         suspend fun register(context: Context) {
             try {

@@ -22,7 +22,7 @@ exports.handler = async (event) => {
     const result = await ddb.send(new GetCommand({
       TableName: USERS_TABLE,
       Key: { id: userId },
-      ProjectionExpression: "watch_id, watch_name, watch_paired_at",
+      ProjectionExpression: "watch_id, watch_name, watch_paired_at, watch_fcm_token, mobile_fcm_token",
     }));
 
     if (!result.Item) {
@@ -31,9 +31,10 @@ exports.handler = async (event) => {
 
     return reply(200, {
       watch_id: result.Item.watch_id || null,
-      // watch_name is the friendly device name sent during init-pairing (optional field).
       watch_name: result.Item.watch_name || null,
       watch_paired_at: result.Item.watch_paired_at || null,
+      watch_fcm_registered: !!result.Item.watch_fcm_token,
+      mobile_push_registered: !!result.Item.mobile_fcm_token,
     });
   } catch (err) {
     return reply(500, { error: err.message });
