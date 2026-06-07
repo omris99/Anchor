@@ -45,8 +45,12 @@ internal object MainWatchFormatters {
     fun time(date: Date, locale: Locale = Locale.getDefault()): String =
         SimpleDateFormat("HH:mm", locale).format(date)
 
-    fun date(date: Date, locale: Locale = Locale.getDefault()): String =
-        SimpleDateFormat("dd/MM/yyyy", locale).format(date)
+    fun date(date: Date, locale: Locale = Locale.getDefault()): String {
+        val dayName = SimpleDateFormat("EEEE", locale).format(date)
+            .removePrefix("יום ")
+        val dayMonth = SimpleDateFormat("d MMMM", locale).format(date)
+        return "$dayName · $dayMonth"
+    }
 }
 
 internal object MainWatchSizing {
@@ -123,7 +127,7 @@ fun MainWatchScreen(
                 Text(
                     text = dateText,
                     fontSize = MainWatchSizing.DATE_SP.sp,
-                    color = colorResource(R.color.text_primary),
+                    color = colorResource(R.color.text_secondary),
                     modifier = Modifier.semantics {
                         contentDescription = "$dateCd $dateText"
                     },
@@ -135,7 +139,7 @@ fun MainWatchScreen(
                         onClick = onSosClick,
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = colorResource(R.color.sos),
-                            contentColor = colorResource(R.color.text_primary),
+                            contentColor = colorResource(R.color.text_on_colored),
                         ),
                         modifier = Modifier
                             .size(MainWatchSizing.BUTTON_SIZE_DP.dp)
@@ -145,7 +149,7 @@ fun MainWatchScreen(
                             text = stringResource(R.string.btn_sos),
                             fontSize = MainWatchSizing.BUTTON_LABEL_SP.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colorResource(R.color.text_primary),
+                            color = colorResource(R.color.text_on_colored),
                         )
                     }
                 }

@@ -75,7 +75,6 @@ async function resolveUserIdFromWatchKey(watchKey) {
     FilterExpression: "watch_api_key = :k",
     ExpressionAttributeValues: { ":k": watchKey },
     ProjectionExpression: "id",
-    Limit: 1,
   }));
   return result.Items?.[0]?.id || null;
 }

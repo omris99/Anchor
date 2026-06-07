@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Anchor palette — derived from SOURCE watchapp/res/values/colors.xml.
-         Used by SOURCE screens via colorResource(R.color.*). -->
-    <color name="primary">#1565C0</color>
-    <color name="background">#000000</color>
-    <color name="text_primary">#FFFFFF</color>
-    <color name="sos">#D32F2F</color>
-    <color name="confirm">#388E3C</color>
-    <color name="cancel">#D32F2F</color>
+    <!-- Anchor palette — כיוון 2 · חם (warm light theme for elderly UX) -->
+    <color name="primary">#4A90C4</color>
+    <color name="background">#D6E8F5</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="text_primary">#1C2B3A</color>
+    <color name="text_secondary">#4A6070</color>
+    <color name="text_on_colored">#FFFFFF</color>
+    <color name="sos">#C62828</color>
+    <color name="confirm">#2E7D32</color>
+    <color name="cancel">#455A64</color>
 </resources>

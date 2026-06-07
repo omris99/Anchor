@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
     Alert,
     FlatList,
@@ -13,14 +13,33 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TextInputField from '../components/TextInputField';
 import ClassicButton from '../components/ClassicButton';
-import { UserContext } from '../../App';
+import { UserContext } from '../../logic/contexts/UserContext';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
 const MOCK_LINK_REQUESTS = [
     { id: '1', fullName: 'דניאל הרשקו', phone: '050-1234567' },
 ];
 
 function ElderlyView({ navigation }) {
+    const { user, setUser } = useContext(UserContext);
     const [linkRequests, setLinkRequests] = useState(MOCK_LINK_REQUESTS);
+
+    useEffect(() => {
+        apiRequest(`/users/${user.userId}/profile`)
+            .then(profile => {
+                // Always update watchId + watchName from the backend so that watch_name
+                // is shown even when watchId was already set (e.g. set during pairing
+                // in this session but before watch_name support was added).
+                if (profile.watch_id) {
+                    setUser(prev => ({
+                        ...prev,
+                        watchId: profile.watch_id,
+                        watchName: profile.watch_name || null,
+                    }));
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     const approveRequest = (requestId) => {
         // TODO: POST /users/{userId}/family/approve — אישור בקשת קישור
@@ -62,13 +81,22 @@ function ElderlyView({ navigation }) {
         <>
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>קישור שעון</Text>
-                <Text style={styles.sectionDescription}>סרוק את קוד ה-QR המוצג על השעון לקישור עם חשבונך</Text>
+                {user?.watchId ? (
+                    <View style={styles.watchStatusRow}>
+                        <Text style={styles.watchStatusDot}>●</Text>
+                        <Text style={styles.watchStatusText}>
+                            שעון מקושר — {user.watchName || user.watchId.slice(0, 8)}
+                        </Text>
+                    </View>
+                ) : (
+                    <Text style={styles.sectionDescription}>סרוק את קוד ה-QR המוצג על השעון לקישור עם חשבונך</Text>
+                )}
                 <ClassicButton
                     buttonStyle={styles.watchButton}
                     textStyle={styles.watchButtonText}
                     onPress={() => navigation.navigate('watch-pairing')}
                 >
-                    קשר שעון
+                    {user?.watchId ? 'קשר שעון אחר' : 'קשר שעון'}
                 </ClassicButton>
             </View>
 
@@ -98,15 +126,15 @@ function FamilyMemberView() {
             Alert.alert('שגיאה', 'יש להזין מספר טלפון');
             return;
         }
-        // TODO: POST /users/{userId}/family/request — שליחת בקשת קישור לקשיש לפי טלפון
+        // TODO: POST /users/{userId}/family/request — שליחת בקשת קישור למבוגר לפי טלפון
         Alert.alert('בקשה נשלחה', `בקשת קישור נשלחה למספר ${phoneNumber.trim()}`);
         setPhoneNumber('');
     };
 
     return (
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>קישור עם קשיש</Text>
-            <Text style={styles.sectionDescription}>הזן את מספר הטלפון של הקשיש לשליחת בקשת קישור</Text>
+            <Text style={styles.sectionTitle}>קישור עם מבוגר</Text>
+            <Text style={styles.sectionDescription}>הזן את מספר הטלפון של המבוגר לשליחת בקשת קישור</Text>
             <TextInputField
                 placeholder="מספר טלפון"
                 value={phoneNumber}
@@ -222,6 +250,21 @@ const styles = StyleSheet.create({
         color: '#666',
         textAlign: 'right',
         marginBottom: 14,
+    },
+    watchStatusRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        marginBottom: 14,
+        gap: 8,
+    },
+    watchStatusDot: {
+        fontSize: 12,
+        color: '#4CAF50',
+    },
+    watchStatusText: {
+        fontSize: 14,
+        color: '#333',
+        textAlign: 'right',
     },
     watchButton: {
         width: '100%',

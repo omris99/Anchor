@@ -175,7 +175,7 @@ export default function RegisterScreen({navigation}) {
 
                         <Pressable style={styles.selectField} onPress={() => setShowUserTypePicker(true)}>
                             <Text style={[styles.selectText, !userType && styles.selectPlaceholder]}>
-                                {userType === 'family_member' ? 'בן משפחה' : userType === 'elderly' ? 'קשיש' : 'סוג משתמש...'}
+                                {userType === 'family_member' ? 'בן משפחה' : userType === 'elderly' ? 'מבוגר' : 'סוג משתמש...'}
                             </Text>
                         </Pressable>
 
@@ -189,7 +189,7 @@ export default function RegisterScreen({navigation}) {
                                     <Picker selectedValue={userType} onValueChange={(val) => setUserType(val)}>
                                         <Picker.Item label="סוג משתמש..." value="" color="#aaa"/>
                                         <Picker.Item label="בן משפחה" value="family_member" color="#333"/>
-                                        <Picker.Item label="קשיש" value="elderly" color="#333"/>
+                                        <Picker.Item label="מבוגר" value="elderly" color="#333"/>
                                     </Picker>
                                 </View>
                             </View>

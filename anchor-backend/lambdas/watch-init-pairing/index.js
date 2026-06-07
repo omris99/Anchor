@@ -14,7 +14,16 @@ const ddb = DynamoDBDocumentClient.from(
 const USERS_TABLE = process.env.USERS_TABLE || "Anchor_Users";
 const PAIRING_TTL_SECONDS = 5 * 60; // 5 minutes per DECISIONS.md §2
 
-exports.handler = async () => {
+exports.handler = async (event) => {
+  // device_name is optional — sent by the watch app so the dashboard can display
+  // the watch's friendly name instead of a raw UUID after pairing completes.
+  let deviceName;
+  try {
+    deviceName = event.body ? JSON.parse(event.body)?.device_name : undefined;
+  } catch {
+    // Malformed body — treat device_name as absent, proceed with pairing.
+  }
+
   const pairingToken = crypto.randomUUID();
   const watchId = crypto.randomUUID();
   const issuedAt = Date.now();
@@ -27,6 +36,7 @@ exports.handler = async () => {
         id: pairingToken,
         type: "pairing",
         watch_id: watchId,
+        ...(deviceName ? { device_name: deviceName } : {}),
         issued_at: issuedAt,
         expires_at: expiresAt,
         // DynamoDB TTL attribute (set the table's TimeToLiveSpecification.AttributeName

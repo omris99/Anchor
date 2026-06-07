@@ -84,7 +84,7 @@ fun MedicationReminderScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(colorResource(R.color.primary)),
+                .background(colorResource(R.color.background)),
             contentAlignment = Alignment.Center,
         ) {
             Column(
@@ -97,9 +97,9 @@ fun MedicationReminderScreen(
                 if (confirmed) {
                     Text(
                         text = stringResource(R.string.medication_confirmed),
-                        fontSize = 30.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colorResource(R.color.text_primary),
+                        color = colorResource(R.color.confirm),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.semantics { contentDescription = confirmedCd },
                     )
@@ -107,42 +107,55 @@ fun MedicationReminderScreen(
                 }
 
                 Text(
+                    text = "💊",
+                    fontSize = 28.sp,
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Text(
+                    text = stringResource(R.string.medication_subtitle),
+                    fontSize = 12.sp,
+                    color = colorResource(R.color.text_secondary),
+                    textAlign = TextAlign.Center,
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                Text(
                     text = medication?.name ?: stringResource(R.string.medication_loading),
-                    fontSize = 26.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = colorResource(R.color.text_primary),
                     textAlign = TextAlign.Center,
                 )
 
-                Spacer(Modifier.height(6.dp))
-
                 Text(
                     text = stringResource(R.string.time_left_template, minutes, seconds),
-                    fontSize = 18.sp,
-                    color = colorResource(R.color.text_primary),
+                    fontSize = 12.sp,
+                    color = colorResource(R.color.text_secondary),
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
                 Button(
                     onClick = {
-                        // Acknowledge immediately (UX feedback), then fire the remote confirm.
                         confirmed = true
                         onConfirm()
                     },
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = colorResource(R.color.confirm),
-                        contentColor = colorResource(R.color.text_primary),
+                        contentColor = colorResource(R.color.text_on_colored),
                     ),
                     modifier = Modifier
-                        .defaultMinSize(minWidth = 96.dp, minHeight = 52.dp)
+                        .defaultMinSize(minWidth = 140.dp, minHeight = 48.dp)
                         .semantics { contentDescription = takenCd },
                 ) {
                     Text(
-                        text = stringResource(R.string.medication_taken),
-                        fontSize = 22.sp,
+                        text = "✓  ${stringResource(R.string.medication_taken)}",
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colorResource(R.color.text_primary),
+                        color = colorResource(R.color.text_on_colored),
                     )
                 }
             }

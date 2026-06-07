@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.anchor.watch.data.CheckInApi
+import com.anchor.watch.data.CheckInContext
 import com.anchor.watch.data.MedicationApi
 import com.anchor.watch.data.local.CheckInEntity
 import com.anchor.watch.data.local.EmergencyEventEntity
@@ -107,6 +108,18 @@ object PartnerApi {
     /** Pairing helper (no SOURCE interface — invoked by a future PairingScreen). */
     fun pairing(context: Context): PartnerPairingApi =
         PartnerPairingApi(retrofit(context).create(PartnerPairingService::class.java))
+
+    /** Registers the FCM token with the backend so it can push medication sync messages. */
+    suspend fun registerFcmToken(context: Context, token: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                retrofit(context)
+                    .create(PartnerFcmService::class.java)
+                    .registerFcmToken(FcmTokenDto(token))
+                    .isSuccessful
+            }.getOrDefault(false)
+        }
+    }
 }
 
 // ───────────────────────── Retrofit service interfaces ──────────────────────────
@@ -141,9 +154,14 @@ internal interface PartnerCheckInService {
     suspend fun submit(@Body body: CheckInRequestDto): retrofit2.Response<CheckInResponseDto>
 }
 
+internal interface PartnerFcmService {
+    @POST("watch/fcm-token")
+    suspend fun registerFcmToken(@Body body: FcmTokenDto): retrofit2.Response<Unit>
+}
+
 internal interface PartnerPairingService {
     @POST("watch/init-pairing")
-    suspend fun initPairing(): retrofit2.Response<InitPairingResponseDto>
+    suspend fun initPairing(@Body body: InitPairingRequestDto): retrofit2.Response<InitPairingResponseDto>
 
     // Polling endpoint: returns watch_api_key once dashboard completes pairing.
     @GET("watch/credentials")
@@ -161,6 +179,8 @@ internal data class EmergencyRequestDto(
     val type: String,
     val timestamp: Long,
     val is_emergency: Boolean = true,
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -175,6 +195,9 @@ internal data class CheckInRequestDto(
     val user_id: String,
     val status: String,
     val timestamp: Long,
+    val lat: Double?,
+    val lng: Double?,
+    val battery_percent: Int?,
 )
 
 @JsonClass(generateAdapter = true)
@@ -206,6 +229,18 @@ internal data class MedicationStatusDto(
 )
 
 @JsonClass(generateAdapter = true)
+internal data class FcmTokenDto(
+    val fcm_token: String,
+)
+
+// Sent in the body of POST /watch/init-pairing so the backend can store the
+// watch's friendly name alongside the pairing record and later stamp it on the user row.
+@JsonClass(generateAdapter = true)
+internal data class InitPairingRequestDto(
+    val device_name: String,
+)
+
+@JsonClass(generateAdapter = true)
 internal data class InitPairingResponseDto(
     val pairing_token: String,
     val watch_id: String,       // used for polling GET /watch/credentials
@@ -223,7 +258,7 @@ internal data class PairingResultDto(
 internal class PartnerEmergencyApi(
     private val service: PartnerEmergencyService,
 ) : EmergencyApi {
-    override suspend fun submit(event: EmergencyEventEntity): Boolean =
+    override suspend fun submit(event: EmergencyEventEntity, lat: Double?, lng: Double?): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {
                 service.trigger(
@@ -232,6 +267,8 @@ internal class PartnerEmergencyApi(
                         user_id = event.userId,
                         type = event.type,
                         timestamp = event.timestamp,
+                        lat = lat,
+                        lng = lng,
                     )
                 ).isSuccessful
             }.getOrDefault(false)
@@ -280,17 +317,22 @@ internal class PartnerMedicationApi(
 internal class PartnerCheckInApi(
     private val service: PartnerCheckInService,
 ) : CheckInApi {
-    override suspend fun submit(entity: CheckInEntity): Boolean =
+    override suspend fun submit(entity: CheckInEntity, context: CheckInContext): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {
-                service.submit(
-                    CheckInRequestDto(
-                        event_id = entity.id,
-                        user_id = entity.userId,
-                        status = entity.status,
-                        timestamp = entity.timestamp,
-                    )
-                ).isSuccessful
+                val dto = CheckInRequestDto(
+                    event_id = entity.id,
+                    user_id = entity.userId,
+                    status = entity.status,
+                    timestamp = entity.timestamp,
+                    lat = context.lat,
+                    lng = context.lng,
+                    battery_percent = context.batteryPercent,
+                )
+                val response = service.submit(dto)
+                response.isSuccessful
+            }.onFailure {
+                android.util.Log.e("PartnerCheckInApi", "submit failed", it)
             }.getOrDefault(false)
         }
 }
@@ -303,11 +345,15 @@ internal class PartnerCheckInApi(
 class PartnerPairingApi internal constructor(
     private val service: PartnerPairingService,
 ) {
-    /** Fetches a 5-minute pairing token (DECISIONS.md §2). Returns null on failure. */
-    internal suspend fun initPairing(): InitPairingResponseDto? =
+    /**
+     * Fetches a 5-minute pairing token (DECISIONS.md §2). Returns null on failure.
+     * [deviceName] is the watch's friendly name (e.g. "Galaxy Watch 6"); stored by the backend
+     * so the dashboard can display it instead of a raw watch_id.
+     */
+    internal suspend fun initPairing(deviceName: String): InitPairingResponseDto? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val response = service.initPairing()
+                val response = service.initPairing(InitPairingRequestDto(device_name = deviceName))
                 if (response.isSuccessful) response.body() else null
             }.getOrNull()
         }

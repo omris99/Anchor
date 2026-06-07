@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import {
+    ActivityIndicator,
     Image,
     ImageBackground,
     ScrollView,
@@ -9,15 +10,16 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { UserContext } from '../../logic/contexts/UserContext';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
-// TODO: LOAD — יש לטעון אירועי חירום אמיתיים מהשרת.
-// GET /users/{userId}/emergency-events
 const MOCK_EMERGENCY_EVENTS = [
     {
         id: '1',
         timestamp: '4/5/2026, 14:22',
         type: 'זוהתה נפילה!',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
     },
@@ -25,7 +27,7 @@ const MOCK_EMERGENCY_EVENTS = [
         id: '2',
         timestamp: '1/5/2026, 09:05',
         type: 'לחיצה על כפתור מצוקה',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
         
@@ -34,7 +36,7 @@ const MOCK_EMERGENCY_EVENTS = [
         id: '3',
         timestamp: '28/4/2026, 20:47',
         type: 'זוהתה נפילה!',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
     },
@@ -42,13 +44,47 @@ const MOCK_EMERGENCY_EVENTS = [
         id: '4',
         timestamp: '20/4/2026, 11:30',
         type: 'דופק חלש מאוד',
-        location: 'רחוב הרצל 12, תל אביב',
+        location: null,
         status: 'acknowledged',
         isEmergency: true,
     },
 ];
 
+function formatAlertForScreen(alert) {
+    const location = (alert.location?.lat != null && alert.location?.lng != null)
+        ? { lat: alert.location.lat, lng: alert.location.lng }
+        : null;
+    return {
+        id: alert.id,
+        timestamp: new Date(alert.timestamp).toLocaleString('he-IL'),
+        type: alert.type === 'SOS' ? 'לחיצת SOS' : 'זוהתה נפילה!',
+        location,
+        status: alert.status,
+        isEmergency: true,
+    };
+}
+
 export default function EmergencyHistoryScreen({ navigation }) {
+    const { user } = useContext(UserContext);
+    const [realAlerts, setRealAlerts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!user?.userId) { setIsLoading(false); return; }
+            setIsLoading(true);
+            apiRequest(`/users/${user.userId}/emergency-alerts`)
+                .then(data => setRealAlerts(data.alerts || []))
+                .catch(() => {})
+                .finally(() => setIsLoading(false));
+        }, [user?.userId])
+    );
+
+    const allEvents = [
+        ...realAlerts.map(a => ({ ...formatAlertForScreen(a), _key: `real-${a.id}` })),
+        ...MOCK_EMERGENCY_EVENTS.map(e => ({ ...e, _key: `mock-${e.id}` })),
+    ];
+
     return (
         <ImageBackground
             source={require('../assets/wave-background.png')}
@@ -72,14 +108,12 @@ export default function EmergencyHistoryScreen({ navigation }) {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {MOCK_EMERGENCY_EVENTS.length === 0 ? (
-                        <View style={styles.emptyCard}>
-                            <Text style={styles.emptyText}>לא נרשמו אירועי חירום</Text>
-                        </View>
+                    {isLoading ? (
+                        <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
                     ) : (
-                        MOCK_EMERGENCY_EVENTS.map(event => (
+                        allEvents.map(event => (
                             <TouchableOpacity
-                                key={event.id}
+                                key={event._key}
                                 style={styles.eventCard}
                                 activeOpacity={0.85}
                                 onPress={() => navigation.navigate('emergency-event', { event })}
@@ -94,12 +128,16 @@ export default function EmergencyHistoryScreen({ navigation }) {
                                 </View>
                                 <View style={styles.eventRow}>
                                     <Text style={styles.eventLabel}>סטטוס:</Text>
-                                    <Text style={styles.acknowledgedBadge}>טופל</Text>
+                                    {event.status === 'acknowledged'
+                                        ? <Text style={styles.acknowledgedBadge}>טופל</Text>
+                                        : <Text style={styles.pendingBadge}>ממתין לטיפול</Text>
+                                    }
                                 </View>
                             </TouchableOpacity>
                         ))
                     )}
                 </ScrollView>
+
             </SafeAreaView>
         </ImageBackground>
     );
@@ -210,6 +248,15 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#2a9d5c',
         backgroundColor: '#e6f7ee',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 8,
+    },
+    pendingBadge: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#cc2222',
+        backgroundColor: '#fff0f0',
         paddingHorizontal: 10,
         paddingVertical: 3,
         borderRadius: 8,

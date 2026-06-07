@@ -41,6 +41,10 @@ datastorePreferences = "1.1.1"
 # --- QR code generation (WatchPairingScreen) ---
 zxingCore = "3.5.3"
 
+# --- Firebase (FCM silent push for medication sync) ---
+firebaseBom = "33.7.0"
+googleServices = "4.4.2"
+
 # --- Test (SOURCE additions) ---
 junit4 = "4.13.2"
 robolectric = "4.14.1"
@@ -99,6 +103,10 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 # --- QR code generation ---
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
 
+# --- Firebase (FCM) ---
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
+
 # --- Test (SOURCE deps) ---
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
@@ -110,3 +118,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

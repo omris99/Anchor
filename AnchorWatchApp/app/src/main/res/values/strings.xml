@@ -20,7 +20,9 @@
     <string name="cd_sos">Emergency button</string>
     <string name="cd_menu">Open menu</string>
 
-    <string name="sos_title">S.O.S</string>
+    <string name="sos_title">SOS</string>
+    <string name="sos_subtitle">Sending alert to family</string>
+    <string name="sos_seconds_label">seconds to cancel</string>
     <string name="sos_countdown_template">Sending in %1$d seconds…</string>
     <string name="sos_cancel">Cancel</string>
     <string name="sos_dispatching">Dispatching emergency alert</string>
@@ -37,6 +39,7 @@
     <string name="cd_checkin_neutral">I feel okay</string>
     <string name="cd_checkin_happy">I feel good</string>
 
+    <string name="medication_subtitle">Time for your medication</string>
     <string name="medication_loading">Loading…</string>
     <string name="medication_confirmed">✓ Taken</string>
     <string name="cd_medication_taken">Confirm medication taken</string>

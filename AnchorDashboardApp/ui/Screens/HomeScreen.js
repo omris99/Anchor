@@ -1,7 +1,8 @@
 import React, { useContext } from 'react';
 import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
 import ClassicButton from '../components/ClassicButton';
-import { UserContext } from '../../App';
+import WellnessStatusCard from '../components/WellnessStatusCard';
+import { UserContext } from '../../logic/contexts/UserContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen({ navigation }) {
@@ -22,7 +23,8 @@ export default function HomeScreen({ navigation }) {
             />
 
             <Text style={styles.greeting}>{greet}</Text>
-            <Text style={styles.subtitle}>מסך הבית</Text>
+
+            <WellnessStatusCard userId={user?.userId} />
 
             <View style={styles.buttons}>
                 <ClassicButton
@@ -94,14 +96,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#444',
         textAlign: 'right',
-        marginBottom: 2,
-    },
-    subtitle: {
-        fontSize: 26,
-        fontWeight: '700',
-        color: '#48AEBE',
-        textAlign: 'right',
-        marginBottom: 28,
+        marginBottom: 10,
     },
     buttons: {
         flex: 1,

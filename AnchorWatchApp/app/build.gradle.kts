@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -30,7 +31,7 @@ android {
         // from the legacy values-iw/), so the "he" filter actually matches the folder —
         // previously "he" did not match the "iw" qualifier and Hebrew could be stripped,
         // making a Hebrew selection fall back to English. "en" is the default values/.
-        localeFilters += listOf("en", "he")
+        localeFilters += listOf("en", "he", "iw")
     }
 
     buildTypes {
@@ -57,7 +58,8 @@ android {
     // (transplanted SOURCE tree under com.anchor.watch.*) are active source roots.
     sourceSets {
         getByName("main").kotlin.srcDir("src/main/kotlin")
-        getByName("test").kotlin.srcDir("src/test/kotlin")
+        getByName("test").kotlin.srcDirs("tests/unit")
+        getByName("androidTest").kotlin.srcDirs("tests/instrumented")
     }
 
     useLibrary("wear-sdk")
@@ -124,6 +126,10 @@ dependencies {
 
     // --- QR code generation (WatchPairingScreen) ---
     implementation(libs.zxing.core)
+
+    // --- Firebase (FCM silent push for medication sync) ---
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
 
     // --- Unit tests (SOURCE) ---
     testImplementation(libs.junit4)

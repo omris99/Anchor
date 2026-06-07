@@ -1,6 +1,5 @@
 import {fetchAuthSession} from "aws-amplify/auth";
-
-const API_BASE_URL = "https://u7cxnohim6.execute-api.us-east-1.amazonaws.com";
+import {API_BASE_URL} from "../../../config/env";
 
 export async function apiRequest(path, options = {}) {
     let token;
@@ -23,7 +22,9 @@ export async function apiRequest(path, options = {}) {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-        throw new Error(data?.error || data?.message || "API request failed");
+        const err = new Error(data?.error || data?.message || "API request failed");
+        err.status = response.status;
+        throw err;
     }
 
     return data;

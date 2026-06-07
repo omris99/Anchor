@@ -1,25 +1,35 @@
-import React, {useState} from "react";
+import React, {useContext, useState} from "react";
 import {ActivityIndicator, Alert, StyleSheet, Text, TextInput, View} from "react-native";
 import ClassicButton from "../components/ClassicButton";
 import {confirmRegistration, resendCode} from "../../logic/services/authentication/ConfirmSignUpService";
+import {loginUser} from "../../logic/services/authentication/LoginService";
+import {UserContext} from "../../logic/contexts/UserContext";
 
 export default function ConfirmSignUpScreen({ route, navigation }) {
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
+    const { setUser } = useContext(UserContext);
 
-    const { email } = route.params;
+    const { email, password } = route.params;
 
     const handleConfirm = async () => {
         try {
             setLoading(true);
 
             await confirmRegistration(email, code);
-            Alert.alert(
-                "הצלחה",
-                "האימייל אומת בהצלחה."
-            );
 
-            navigation.navigate("welcome");
+            // D5: seamless progression — log the just-confirmed user straight into the app.
+            try {
+                const userData = await loginUser(email, password, false);
+                setUser(userData);
+                navigation.reset({ index: 0, routes: [{ name: "main-tabs" }] });
+                return;
+            } catch (loginError) {
+                console.error(loginError);
+                Alert.alert("הצלחה", "האימייל אומת בהצלחה. אנא התחבר.");
+                navigation.navigate("welcome");
+                return;
+            }
         } catch (error) {
             console.error(error);
             Alert.alert("שגיאה", error.message || "אימות הקוד נכשל");
@@ -62,11 +72,13 @@ export default function ConfirmSignUpScreen({ route, navigation }) {
                 {loading ? <ActivityIndicator color="#fff" /> : "אמת חשבון"}
             </ClassicButton>
 
+            {/* Resend disabled: /auth/resend-code endpoint not yet implemented (coming soon). */}
             <ClassicButton
                 buttonStyle={[styles.button, styles.secondaryButton]}
                 onPress={handleResend}
+                disabled={true}
             >
-                שלח קוד מחדש
+                שלח קוד מחדש (בקרוב)
             </ClassicButton>
         </View>
     );

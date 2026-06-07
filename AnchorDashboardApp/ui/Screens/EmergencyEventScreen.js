@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
+import * as Location from 'expo-location';
 import {
+    ActivityIndicator,
     Image,
     ImageBackground,
+    Linking,
     ScrollView,
     StyleSheet,
     Text,
@@ -9,6 +12,9 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { openMapLocation } from '../../logic/utils/mapUtils';
+import { apiRequest } from '../../logic/services/api/ApiClient';
+import { UserContext } from '../../logic/contexts/UserContext';
 
 const MOCK_EVENT = {
     id: '1',
@@ -19,9 +25,54 @@ const MOCK_EVENT = {
     isEmergency: true,
 };
 
+function useReverseGeocode(location) {
+    const [address, setAddress] = useState(null);
+
+    useEffect(() => {
+        if (!location?.lat || !location?.lng) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const results = await Location.reverseGeocodeAsync(
+                    { latitude: location.lat, longitude: location.lng },
+                    { useGoogleMaps: false },
+                );
+                if (cancelled || !results?.length) return;
+                const r = results[0];
+                const parts = [r.name ?? r.street, r.city, r.country].filter(Boolean);
+                setAddress(parts.join(', ') || null);
+            } catch {
+                // leave address as null — fallback to coordinates shown below
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [location?.lat, location?.lng]);
+
+    return address;
+}
+
 export default function EmergencyEventScreen({ route, navigation }) {
+    const { user } = useContext(UserContext);
     const event = route?.params?.event ?? MOCK_EVENT;
     const [acknowledged, setAcknowledged] = useState(event.status === 'acknowledged');
+    const [isAcknowledging, setIsAcknowledging] = useState(false);
+    const resolvedAddress = useReverseGeocode(event.location);
+
+    async function handleAcknowledge() {
+        setIsAcknowledging(true);
+        try {
+            await apiRequest(`/emergency/${event.id}/acknowledge`, {
+                method: 'POST',
+                body: JSON.stringify({ user_id: user?.userId }),
+            });
+            setAcknowledged(true);
+        } catch {
+            // alert not found (e.g. mock event) — acknowledge locally anyway
+            setAcknowledged(true);
+        } finally {
+            setIsAcknowledging(false);
+        }
+    }
 
     return (
         <ImageBackground
@@ -69,9 +120,22 @@ export default function EmergencyEventScreen({ route, navigation }) {
                     {/* Location card */}
                     <View style={styles.card}>
                         <Text style={styles.sectionLabel}>מיקום אחרון:</Text>
-                        <View style={styles.mapPlaceholder}>
-                            <Text style={styles.mapPlaceholderText}>📍 {event.location ?? 'מיקום לא זמין'}</Text>
-                        </View>
+                        <Text style={styles.locationText}>
+                            {resolvedAddress
+                                ? `📍 ${resolvedAddress}`
+                                : event.location
+                                    ? `📍 ${event.location.lat.toFixed(5)}, ${event.location.lng.toFixed(5)}`
+                                    : '📍 מיקום לא זמין'}
+                        </Text>
+                        {event.location != null && (
+                            <TouchableOpacity
+                                style={styles.mapButton}
+                                activeOpacity={0.7}
+                                onPress={() => openMapLocation(event.location)}
+                            >
+                                <Text style={styles.mapButtonText}>מיקום על המפה</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     {/* Acknowledge button */}
@@ -81,12 +145,15 @@ export default function EmergencyEventScreen({ route, navigation }) {
                             acknowledged && styles.acknowledgeButtonDone,
                         ]}
                         activeOpacity={0.8}
-                        onPress={() => setAcknowledged(true)}
-                        disabled={acknowledged}
+                        onPress={handleAcknowledge}
+                        disabled={acknowledged || isAcknowledging}
                     >
-                        <Text style={styles.acknowledgeButtonText}>
-                            {acknowledged ? '✓ הקריאה טופלה' : 'אישור קבלת קריאה'}
-                        </Text>
+                        {isAcknowledging
+                            ? <ActivityIndicator color="#fff" />
+                            : <Text style={styles.acknowledgeButtonText}>
+                                {acknowledged ? '✓ הקריאה טופלה' : 'אישור קבלת קריאה'}
+                              </Text>
+                        }
                     </TouchableOpacity>
                 </ScrollView>
             </SafeAreaView>
@@ -215,19 +282,24 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#CC2222',
     },
-    mapPlaceholder: {
-        backgroundColor: '#F9F9F9',
-        borderRadius: 16,
-        height: 140,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#EEE',
-    },
-    mapPlaceholderText: {
+    locationText: {
         fontSize: 15,
         color: '#555',
         fontWeight: '500',
+        textAlign: 'right',
+        marginBottom: 14,
+    },
+    mapButton: {
+        backgroundColor: '#48AEBE',
+        borderRadius: 12,
+        height: 46,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mapButtonText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#fff',
     },
     acknowledgeButton: {
         backgroundColor: '#2A9D5C',

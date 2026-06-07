@@ -28,7 +28,6 @@ exports.handler = async (event) => {
       FilterExpression: "watch_id = :w AND attribute_exists(watch_api_key)",
       ExpressionAttributeValues: { ":w": watchId },
       ProjectionExpression: "id, watch_api_key",
-      Limit: 1,
     }));
 
     if (!result.Items?.length) {

@@ -20,6 +20,7 @@ import com.anchor.watch.data.local.EmergencyEventEntity
 import com.anchor.watch.data.local.EmergencyLocalStore
 import com.anchor.watch.data.local.EmergencyStore
 import com.anchor.watch.network.PartnerApi
+import com.anchor.watch.utils.requestBestLocation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,17 +41,22 @@ sealed class EmergencyState {
 }
 
 interface EmergencyApi {
-    suspend fun submit(event: EmergencyEventEntity): Boolean
+    suspend fun submit(
+        event: EmergencyEventEntity,
+        lat: Double? = null,
+        lng: Double? = null,
+    ): Boolean
 }
 
 object UnreachableEmergencyApi : EmergencyApi {
-    override suspend fun submit(event: EmergencyEventEntity): Boolean = false
+    override suspend fun submit(event: EmergencyEventEntity, lat: Double?, lng: Double?): Boolean = false
 }
 
 class EmergencyOrchestrator(
     private val store: EmergencyStore,
     private val api: EmergencyApi,
     private val onQueueForRetry: () -> Unit,
+    private val locationProvider: (suspend () -> Pair<Double?, Double?>)? = null,
     private val clock: () -> Long = System::currentTimeMillis,
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
@@ -86,6 +92,7 @@ class EmergencyOrchestrator(
 
     suspend fun dispatch() {
         _state.value = EmergencyState.Dispatching
+        val (lat, lng) = locationProvider?.invoke() ?: (null to null)
         val event = EmergencyEventEntity(
             id = idGenerator(),
             timestamp = clock(),
@@ -94,7 +101,7 @@ class EmergencyOrchestrator(
             isSynced = false,
         )
         store.save(event)
-        val ok = runCatching { api.submit(event) }.getOrDefault(false)
+        val ok = runCatching { api.submit(event, lat, lng) }.getOrDefault(false)
         if (ok) {
             store.markSynced(event.id)
             _state.value = EmergencyState.Sent(online = true)
@@ -109,6 +116,7 @@ class EmergencyService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var orchestrator: EmergencyOrchestrator
+    private var activeAlarmRingtone: android.media.Ringtone? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -118,6 +126,10 @@ class EmergencyService : Service() {
             // PartnerApiAdapter: was UnreachableEmergencyApi (SOURCE default stub).
             api = PartnerApi.emergency(applicationContext),
             onQueueForRetry = { EmergencySyncWorker.enqueue(applicationContext) },
+            locationProvider = {
+                val location = requestBestLocation(applicationContext)
+                location?.latitude to location?.longitude
+            },
         )
         scope.launch {
             orchestrator.state.collect { liveState.value = it }
@@ -206,10 +218,17 @@ class EmergencyService : Service() {
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
+        activeAlarmRingtone = ringtone
         ringtone.play()
     }
 
+    private fun stopAlarmRingtone() {
+        activeAlarmRingtone?.stop()
+        activeAlarmRingtone = null
+    }
+
     private fun stopSelfSafe() {
+        stopAlarmRingtone()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -225,6 +244,7 @@ class EmergencyService : Service() {
     }
 
     override fun onDestroy() {
+        stopAlarmRingtone()
         scope.cancel()
         super.onDestroy()
     }

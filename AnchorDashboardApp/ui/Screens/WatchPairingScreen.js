@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import {
     Alert,
     Image,
@@ -11,33 +11,46 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import ClassicButton from '../components/ClassicButton';
-import { UserContext } from '../../App';
+import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 
 export default function WatchPairingScreen({ navigation }) {
-    const { user } = useContext(UserContext);
+    const { user, setUser } = useContext(UserContext);
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
+    const scannedRef = useRef(false);
     const [pairedWatchId, setPairedWatchId] = useState(null);
 
     const handleBarcodeScanned = async ({ data }) => {
-        if (scanned) return;
+        if (scannedRef.current) return;
+        scannedRef.current = true;
         setScanned(true);
 
         try {
             // data is the pairing_token displayed as QR on the watch.
-            await apiRequest(`/users/${user.userId}/watch/pair`, {
+            const result = await apiRequest(`/users/${user.userId}/watch/pair`, {
                 method: 'POST',
                 body: JSON.stringify({ pairing_token: data }),
             });
-            setPairedWatchId(data);
+            setUser({ ...user, watchId: result.watch_id, watchName: result.watch_name || null });
+            setPairedWatchId(result.watch_id);
         } catch (err) {
-            Alert.alert('שגיאה', 'לא ניתן לקשר את השעון. ודא שה-QR עדכני ונסה שוב.');
-            setScanned(false);
+            if (err.status === 404) {
+                Alert.alert('קוד QR כבר נוצל', 'קוד ה-QR הזה כבר שומש. חזור למסך הקישור בשעון כדי לקבל קוד חדש.');
+            } else if (err.status === 410) {
+                Alert.alert('קוד QR פג תוקף', 'חזור למסך הקישור בשעון כדי לקבל קוד חדש.');
+            } else {
+                Alert.alert(
+                    'שגיאה',
+                    'לא ניתן לקשר את השעון. ודא שהשעון מחובר לאינטרנט ונסה שוב.',
+                    [{ text: 'נסה שוב', onPress: () => setScanned(false) }]
+                );
+            }
         }
     };
 
     const handlePairAgain = () => {
+        scannedRef.current = false;
         setScanned(false);
         setPairedWatchId(null);
     };

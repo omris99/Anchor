@@ -53,10 +53,12 @@ add_route() {
 add_route "watch-init-pairing" "POST" "/watch/init-pairing"
 add_route "watch-pair"         "POST" "/users/{id}/watch/pair"
 add_route "watch-credentials"  "GET"  "/watch/credentials"
+add_route "watch-fcm-token"    "POST" "/watch/fcm-token"
 
 # --- Check-ins ---
-add_route "checkins"     "POST" "/checkins"
-add_route "checkins-get" "GET"  "/users/{id}/checkins"
+add_route "checkins"         "POST" "/checkins"
+add_route "checkins-get"     "GET"  "/users/{id}/checkins"
+add_route "checkins-request" "POST" "/users/{id}/checkins/request"
 
 # --- Medication reminders (watch — X-Watch-Key) ---
 add_route "medication-reminders-get"     "GET"  "/medication-reminders/{userId}"
@@ -71,6 +73,12 @@ add_route "medication-reminders-dashboard" "DELETE" "/users/{id}/medication-remi
 # --- Emergency ---
 add_route "emergency"             "POST" "/emergency"
 add_route "emergency-acknowledge" "POST" "/emergency/{id}/acknowledge"
+
+# --- Mobile FCM token (dashboard) ---
+add_route "mobile-fcm-token" "POST" "/users/{id}/mobile-fcm-token"
+
+# --- User profile ---
+add_route "user-profile" "GET" "/users/{id}/profile"
 
 echo ""
 echo "All routes added. API is live at:"

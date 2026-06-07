@@ -9,14 +9,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
+import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.anchor.watch.MedicationActivity
 import com.anchor.watch.R
 import com.anchor.watch.data.MedicationRepository
@@ -68,6 +69,7 @@ class MedicationAlarmService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var orchestrator: MedicationOrchestrator
     private lateinit var repository: MedicationRepository
+    private var activeRingtone: Ringtone? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -123,6 +125,7 @@ class MedicationAlarmService : Service() {
                     stopSelfSafe()
                     return START_NOT_STICKY
                 }
+                stopRingtone()
                 scope.launch {
                     orchestrator.confirm(id)
                     liveMedicationId.value = null
@@ -157,22 +160,43 @@ class MedicationAlarmService : Service() {
     }
 
     private fun playGentleChime() {
-        // Soft notification tone, played once (no loop) at notification volume.
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION) ?: return
+        stopRingtone()
+        // TYPE_ALARM is reliably present on Wear OS and bypasses DND/Theater Mode.
+        // Fall back to TYPE_NOTIFICATION on devices that lack an alarm URI.
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            ?: return
         val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
         ringtone.audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
         ringtone.play()
+        activeRingtone = ringtone
+    }
+
+    private fun stopRingtone() {
+        activeRingtone?.stop()
+        activeRingtone = null
     }
 
     private fun launchActivity(medicationId: String) {
+        // ACQUIRE_CAUSES_WAKEUP forces the screen on before the activity appears.
+        // MedicationActivity then calls requestDismissKeyguard() to push itself
+        // above the Watch Face that normally reclaims focus on wakeup.
+        @Suppress("DEPRECATION")
+        val wl = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(
+            PowerManager.FULL_WAKE_LOCK or
+                PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                PowerManager.ON_AFTER_RELEASE,
+            "anchor:med_wakeup",
+        )
+        wl.acquire(3_000L)
+
+        // FLAG_ACTIVITY_CLEAR_TASK is intentionally omitted: with singleInstance it's
+        // redundant, and on Wear OS it can prevent the activity from taking focus.
         val launch = Intent(this, MedicationActivity::class.java).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TASK,
-            )
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             putExtra(EXTRA_MED_ID, medicationId)
         }
         startActivity(launch)
@@ -201,10 +225,12 @@ class MedicationAlarmService : Service() {
 
     private fun createChannel() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        // IMPORTANCE_HIGH is required for fullScreenIntent to fire on Wear OS.
+        // Sound and vibration are disabled here — we trigger them directly via gentleAlert().
         val ch = NotificationChannel(
             CHANNEL_ID,
             getString(R.string.medication_notification_title),
-            NotificationManager.IMPORTANCE_LOW,
+            NotificationManager.IMPORTANCE_HIGH,
         ).apply {
             description = getString(R.string.medication_notification_text)
             setSound(null, null)
@@ -225,6 +251,7 @@ class MedicationAlarmService : Service() {
     }
 
     override fun onDestroy() {
+        stopRingtone()
         scope.cancel()
         super.onDestroy()
     }
@@ -235,7 +262,7 @@ class MedicationAlarmService : Service() {
         const val ACTION_FIRE = "com.anchor.watch.action.MED_FIRE"
         const val ACTION_CONFIRM = "com.anchor.watch.action.MED_CONFIRM"
         const val EXTRA_MED_ID = "medication_id"
-        private const val CHANNEL_ID = "anchor_medication"
+        private const val CHANNEL_ID = "anchor_medication_v2"
         private const val NOTIFICATION_ID = 912
         private const val REPEAT_AFTER_MISS_MS = 15 * 60 * 1000L
         private const val FIRST_TIMEOUT_MS = 3 * 60 * 1000L

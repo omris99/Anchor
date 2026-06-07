@@ -59,16 +59,20 @@ exports.handler = async (event) => {
     // 2. Generate a permanent watch API key
     const watchApiKey = crypto.randomBytes(32).toString("hex");
     const watchId = pairing.Item.watch_id;
+    // device_name was stored in the pairing record by watch-init-pairing (optional).
+    const deviceName = pairing.Item.device_name;
 
-    // 3. Stamp the elder's user row with watch credentials
+    // 3. Stamp the elder's user row with watch credentials (+ friendly name if present).
     await ddb.send(new UpdateCommand({
       TableName: USERS_TABLE,
       Key: { id: userId },
-      UpdateExpression: "SET watch_id = :w, watch_api_key = :k, watch_paired_at = :t",
+      UpdateExpression: "SET watch_id = :w, watch_api_key = :k, watch_paired_at = :t"
+        + (deviceName ? ", watch_name = :n" : ""),
       ExpressionAttributeValues: {
         ":w": watchId,
         ":k": watchApiKey,
         ":t": Date.now(),
+        ...(deviceName ? { ":n": deviceName } : {}),
       },
     }));
 
@@ -82,6 +86,8 @@ exports.handler = async (event) => {
       user_id: userId,
       watch_id: watchId,
       watch_api_key: watchApiKey,
+      // watch_name is returned so the dashboard can set it in context immediately.
+      watch_name: deviceName || null,
     });
   } catch (err) {
     return reply(500, { error: err.message });

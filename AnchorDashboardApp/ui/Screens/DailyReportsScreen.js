@@ -1,8 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Image,
     ImageBackground,
-    Linking,
     ScrollView,
     StyleSheet,
     Text,
@@ -10,8 +10,9 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { UserContext } from '../../App';
+import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
+import { openMapLocation } from '../../logic/utils/mapUtils';
 
 // Shown when no real data is available yet (network error, not yet paired, etc.)
 const MOCK_REPORTS = [
@@ -62,22 +63,25 @@ const STATUS_EMOJI = { happy: '😊', neutral: '😐', sad: '😔', no_response:
 // Maps a server check-in to the same shape as MOCK_REPORTS so ReportCard stays unchanged.
 function checkinToReport(checkin, index) {
     const date = new Date(checkin.timestamp);
+    const meds = checkin.medications ?? [];
     return {
         id: checkin.id || checkin.event_id || String(index),
         dateLabel: index === 0 ? 'היום' : index === 1 ? 'אתמול' : date.toLocaleDateString('he-IL'),
         wakeUpTime: date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-        medicationsTaken: [],
-        medicationsPending: [],
+        medicationsTaken: meds
+            .filter(m => m.status === 'taken')
+            .map(m => ({ name: m.name, time: m.scheduled_time })),
+        medicationsPending: meds
+            .filter(m => m.status === 'pending' || m.status === 'missed')
+            .map(m => ({ name: m.name, time: m.scheduled_time })),
         generalFeelingEmoji: STATUS_EMOJI[checkin.status] ?? '—',
-        batteryPercent: null,
-        location: null,
+        batteryPercent: checkin.battery_percent ?? null,
+        location: checkin.lat != null && checkin.lng != null
+            ? { lat: checkin.lat, lng: checkin.lng }
+            : null,
     };
 }
 
-function openMapLocation(location) {
-    const url = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
-    Linking.openURL(url);
-}
 
 function ReportCard({ report, isFirst }) {
     const hasPending = report.medicationsPending.length > 0;
@@ -143,17 +147,34 @@ function ReportCard({ report, isFirst }) {
 export default function DailyReportsScreen({ navigation }) {
     const { user } = useContext(UserContext);
     const [reports, setReports] = useState(MOCK_REPORTS);
+    const [requestState, setRequestState] = useState('idle'); // 'idle' | 'loading' | 'sent' | 'error'
+    const resetTimer = useRef(null);
 
     useEffect(() => {
         apiRequest(`/users/${user.userId}/checkins`)
             .then(data => {
                 const real = (data.checkins ?? []).map(checkinToReport);
-                if (real.length > 0) setReports(real);
+                setReports([...real, ...MOCK_REPORTS]);
             })
             .catch(() => {}); // keep mock data on error
+        return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };
     }, []);
 
     const [todayReport, ...historyReports] = reports;
+
+    function handleRequestCheckIn() {
+        if (requestState === 'loading') return;
+        setRequestState('loading');
+        apiRequest(`/users/${user.userId}/checkins/request`, { method: 'POST' })
+            .then(() => {
+                setRequestState('sent');
+                resetTimer.current = setTimeout(() => setRequestState('idle'), 4000);
+            })
+            .catch(() => {
+                setRequestState('error');
+                resetTimer.current = setTimeout(() => setRequestState('idle'), 4000);
+            });
+    }
 
     return (
         <ImageBackground
@@ -177,6 +198,29 @@ export default function DailyReportsScreen({ navigation }) {
                     <View style={styles.headerSpacer} />
                 </View>
                 <Text style={styles.title}>דיווחים יומיים</Text>
+
+                <TouchableOpacity
+                    style={[
+                        styles.requestButton,
+                        requestState === 'sent' && styles.requestButtonSent,
+                        requestState === 'error' && styles.requestButtonError,
+                    ]}
+                    onPress={handleRequestCheckIn}
+                    activeOpacity={0.75}
+                    disabled={requestState === 'loading'}
+                >
+                    {requestState === 'loading' ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.requestButtonText}>
+                            {requestState === 'sent'
+                                ? '✓ הבקשה נשלחה לשעון'
+                                : requestState === 'error'
+                                ? 'שגיאה — נסה שנית'
+                                : 'בקש check-in עכשיו'}
+                        </Text>
+                    )}
+                </TouchableOpacity>
 
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
@@ -323,5 +367,24 @@ const styles = StyleSheet.create({
         color: '#444',
         textAlign: 'right',
         marginBottom: 12,
+    },
+    requestButton: {
+        backgroundColor: '#48AEBE',
+        borderRadius: 14,
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    requestButtonSent: {
+        backgroundColor: '#34A853',
+    },
+    requestButtonError: {
+        backgroundColor: '#E53935',
+    },
+    requestButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#fff',
     },
 });

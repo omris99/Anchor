@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "874901640356",
+    "project_id": "anchor-5998b",
+    "storage_bucket": "anchor-5998b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:874901640356:android:35bfdffd4f7da734fb0231",
+        "android_client_info": {
+          "package_name": "com.anchor.anchorwatchapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-SkGr9Hy800u8lKiK6ex5X48yC-l0nE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
