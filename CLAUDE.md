@@ -27,9 +27,9 @@
 - Lambda auth endpoints: register ✅, login ✅, confirm ✅, verify-mfa ✅
 - Dashboard App:
   - מסכי auth (register, confirm, login) ✅
-  - HomeScreen ✅ — ניווט ל-5 מסכים ראשיים + `WellnessStatusCard` (נקודה פועמת ירוק/צהוב/אדום, מתרענן עם `useFocusEffect`)
-  - MedicationRemindersScreen ✅ — UI מלא (שם תרופה, שעה, ימים, רשימה), ממתין לחיבור backend (`/medication-reminders`)
-  - HealthDataScreen ✅ — גרף חודשי, ניטור אחרון, מדדים חריגים, ייצוא PDF (stub)
+  - HomeScreen ✅ — ניווט ל-5 מסכים ראשיים + `WellnessStatusCard` + נקודת קישוריות (ירוק = pushToken + watch_paired_at + watch_fcm_registered + mobile_push_registered כולם קיימים; אפור = חסר אחד)
+  - MedicationRemindersScreen ✅ — UI מלא + מחובר ל-backend. כל תרופה ברשימה מציגה סטטוס `watch_scheduled` (ירוק "מוגדרת" / כתום "ממתינה") לפי שדה `watch_scheduled_at` מה-API. כולל כפתור רענון ידני.
+  - HealthDataScreen ✅ — מציג HR ו-steps בזמן אמת מ-`GET /users/{id}/health-metrics/latest` (עם `useFocusEffect`), fallback למדגם. גרף חודשי + ייצוא PDF (stub)
   - DailyReportsScreen ✅ — דיווח יומי + היסטוריה. מציג: מצב רוח, סוללה, מיקום, תרופות שננטלו/שנותר לנטול (מגיעות מ-`checkin.medications` — snapshot שנשמר בזמן הcheck-in)
   - PreferencesScreen ✅ — toggles, תזכורות מים וארוחות, כפתור התנתקות אדום (logoutUser + Amplify signOut + setUser(null))
   - LinkManagementScreen ✅ — route `connections`, תוכן לפי `user.userType`: מבוגר רואה קישור שעון + אישור בקשות; בן משפחה רואה שליחת בקשה לפי טלפון
@@ -44,7 +44,7 @@
 ## ארכיטקטורה — נקודות מפתח
 - **שעון** מזדהה עם API Key (לא JWT) — header: `X-Watch-Key`
 - **watch_name** — נשמר ב-`Anchor_Users`. השעון שולח `device_name` ב-body של `POST /watch/init-pairing` → נשמר בrecord הזמני → מועבר לuser row בpairing. מוחזר מ-`GET /users/{id}/profile`.
-- **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי: יצירה → `medication_sync`, מחיקה → `medication_delete` עם `med_id` (ביטול אלרם ישיר בלי fetch כל הרשימה)
+- **תרופות** — השעון סנכרן לוקאלית (pull כל 15 דקות) + FCM silent push מיידי: יצירה → `medication_sync`, מחיקה → `medication_delete` עם `med_id` (ביטול אלרם ישיר בלי fetch כל הרשימה). אחרי כל `AlarmManager.setAlarmClock()`, השעון שולח `POST /medication-reminders/{id}/schedule-ack` (fire-and-forget) → מעדכן `watch_scheduled_at` ב-DynamoDB → הדאשבורד מציג נקודה ירוקה. אם ה-ACK נכשל, ה-sync הבא (15 דק') ישלח אותו מחדש.
 - **Push notifications** — FCM: שלושה סוגי silent push לשעון: `medication_sync` (סנכרון תרופות אחרי יצירה), `medication_delete` (ביטול אלרם ספציפי אחרי מחיקה — כולל `med_id`), `request_checkin` (פותח `CheckInActivity`). Expo push לדאשבורד: `emergency` (SOS/נפילה), `medication_taken` (אישור נטילת תרופה עם שם התרופה)
 - **FCM token של שעון** — נשמר ב-`watch_fcm_token` ב-`Anchor_Users`. נרשם דרך `POST /watch/fcm-token` אחרי pairing
 - **CheckInContext** — DTO (lat, lng, batteryPercent) שנשלח עם כל check-in מהשעון. מוסיפים שדות עתידיים רק כאן (לא ב-`CheckInEntity` שב-Room)
@@ -53,6 +53,8 @@
 - **Daily Report** — חישוב בזמן אמת + OpenAI API לניתוח
 - **Watch Pairing** — QR code על השעון, המבוגר סורק מהדאשבורד
 - **Family Linking** — הזנת מספר טלפון + אישור המבוגר
+- **HealthMetricsService (Watch)** — `PassiveListenerService` נהרס ונוצר מחדש על-ידי ה-OS בכל delivery. `STEPS_DAILY` הוא delta type — מגיע רק כשיש צעדים חדשים, לא על כל HR delivery. לכן `latestSteps` **לא** יכול להיות instance variable — יש לשמור ב-SharedPreferences (`health_metrics / last_steps`) ולטעון בכל invocation.
+- **Expo Push Token — timing issue** — ה-token נרשם ב-`App.js` רק כשמתחברים (`useEffect` על `user?.userId`). אם SOS נלחץ לפני שהדאשבורד נפתח ונרשם, Lambda `emergency` ימצא `mobile_fcm_token` ריק ב-DynamoDB ו-push לא ישלח. פתרון: לצאת ולהיכנס מחדש לדאשבורד.
 - **DynamoDB Limit+FilterExpression** — אל תוסיף `Limit` ל-Scan/Query עם `FilterExpression` — `Limit` מגביל הערכה לא תוצאות (גרם לבאגים ב-`resolveUserIdFromWatchKey` וב-`emergency-acknowledge`)
 - **Hebrew localization (Watch)** — תיקיית משאבים: `values-iw/` (לא `values-he/`). `localeFilters += listOf("en", "he", "iw")`. כל Activity מוסיף `attachBaseContext` עם `LocaleHelper.wrapContext(base)`. `DailyCheckInScreen` Row עטוף ב-`CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr)` כדי שסדר הפרצופים לא יתהפך.
 
@@ -62,13 +64,14 @@
 - Checkins: POST /checkins (שומר lat/lng/battery_percent + snapshot תרופות), GET /users/{id}/checkins ✅
 - Checkins request: POST /users/{id}/checkins/request (JWT — שולח FCM request_checkin לשעון) ✅
 - Medication reminders: GET+POST+DELETE /users/{id}/medication-reminders (dashboard) ✅
-- Medication reminders: GET /medication-reminders/{userId}, confirm (שולח Expo push למבוגר ולמשפחה עם שם התרופה), missed (watch) ✅
+- Medication reminders: GET /medication-reminders/{userId}, confirm (שולח Expo push למבוגר ולמשפחה עם שם התרופה), missed, schedule-ack (watch — X-Watch-Key) ✅
 - Emergency: POST /emergency (שומר + Expo push למבוגר ולמשפחה), POST /emergency/{id}/acknowledge ✅
   - acknowledge מצפה ל-`user_id` ב-body (לא JWT claims — API GW `AuthorizationType: NONE`)
 - Emergency alerts: GET /users/{id}/emergency-alerts (JWT) ✅
 - Mobile FCM token: POST /users/{id}/mobile-fcm-token (JWT) — שמירת Expo Push Token של הדאשבורד ✅
-- User profile: GET /users/{id}/profile — מחזיר watch_id, watch_name, watch_paired_at (לדאשבורד, JWT auth) ✅
+- User profile: GET /users/{id}/profile — מחזיר watch_id, watch_name, watch_paired_at, watch_fcm_registered (bool), mobile_push_registered (bool) (לדאשבורד, JWT auth) ✅
 - Wellness status: GET /users/{id}/status — מחזיר `{ status: "green"|"yellow"|"red", reason: string }`. לוגיקה: pending emergency → אדום, אין check-in → אדום/צהוב, תרופה missed → צהוב, אחרת ירוק ✅
+- Health metrics: POST /health-metrics (X-Watch-Key, כותב ל-`Anchor_BiometricData`), GET /users/{id}/health-metrics/latest (JWT) ✅
 
 ## סדר endpoints שנשאר לבנות
 1. `/users/{id}/family/request`, `/users/{id}/family/approve`

@@ -93,7 +93,7 @@ function ReportCard({ report, isFirst }) {
             </Text>
 
             <View style={styles.row}>
-                <Text style={styles.rowLabel}>יקיצה:</Text>
+                <Text style={styles.rowLabel}>שעה:</Text>
                 <Text style={styles.rowValue}>{report.wakeUpTime}</Text>
             </View>
 
@@ -148,17 +148,28 @@ export default function DailyReportsScreen({ navigation }) {
     const { user } = useContext(UserContext);
     const [reports, setReports] = useState(MOCK_REPORTS);
     const [requestState, setRequestState] = useState('idle'); // 'idle' | 'loading' | 'sent' | 'error'
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const resetTimer = useRef(null);
 
-    useEffect(() => {
-        apiRequest(`/users/${user.userId}/checkins`)
+    function fetchReports() {
+        return apiRequest(`/users/${user.userId}/checkins`)
             .then(data => {
                 const real = (data.checkins ?? []).map(checkinToReport);
                 setReports([...real, ...MOCK_REPORTS]);
             })
             .catch(() => {}); // keep mock data on error
+    }
+
+    useEffect(() => {
+        fetchReports();
         return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };
     }, []);
+
+    async function handleRefresh() {
+        setIsRefreshing(true);
+        await fetchReports();
+        setIsRefreshing(false);
+    }
 
     const [todayReport, ...historyReports] = reports;
 
@@ -195,7 +206,14 @@ export default function DailyReportsScreen({ navigation }) {
                         style={styles.logo}
                         resizeMode="contain"
                     />
-                    <View style={styles.headerSpacer} />
+                    <TouchableOpacity
+                        style={[styles.refreshButton, isRefreshing && styles.refreshButtonDisabled]}
+                        onPress={handleRefresh}
+                        disabled={isRefreshing}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.refreshIcon}>{isRefreshing ? '…' : '↻'}</Text>
+                    </TouchableOpacity>
                 </View>
                 <Text style={styles.title}>דיווחים יומיים</Text>
 
@@ -268,8 +286,21 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '700',
     },
-    headerSpacer: {
+    refreshButton: {
         width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#48AEBE',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    refreshButtonDisabled: {
+        opacity: 0.5,
+    },
+    refreshIcon: {
+        fontSize: 20,
+        color: '#fff',
+        fontWeight: '700',
     },
     logo: {
         flex: 1,

@@ -36,10 +36,10 @@ const MOCK_DATA = {
     },
     steps: {
         labels: ['1/4', '8/4', '15/4', '22/4', '29/4', '4/5'],
-        values: [3200, 4100, 2800, 5000, 3700, 2100],
+        values: [3200, 4100, 2800, 5000, 3700, 380],
         unit: 'צעדים',
         normalRange: '3000–8000',
-        latestValue: 2100,
+        latestValue: 380,
         isAbnormal: true,
     },
     sleep: {
@@ -57,7 +57,7 @@ const LAST_MONITORING = {
     heartRate: 71,
     sleepHours: 5.0,
     sleepQuality: 'נמוכה',
-    steps: 2100,
+    steps: 380,
 };
 
 export default function HealthDataScreen({ navigation }) {
