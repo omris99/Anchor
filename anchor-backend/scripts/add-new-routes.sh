@@ -80,6 +80,13 @@ add_route "mobile-fcm-token" "POST" "/users/{id}/mobile-fcm-token"
 # --- User profile ---
 add_route "user-profile" "GET" "/users/{id}/profile"
 
+# --- User wellness status ---
+add_route "user-status" "GET" "/users/{id}/status"
+
+# --- Health metrics ---
+add_route "health-metrics-post" "POST" "/health-metrics"
+add_route "health-metrics-get"  "GET"  "/users/{id}/health-metrics/latest"
+
 echo ""
 echo "All routes added. API is live at:"
 echo "  https://${API_ID}.execute-api.${REGION}.amazonaws.com"

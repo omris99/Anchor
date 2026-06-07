@@ -41,6 +41,10 @@ datastorePreferences = "1.1.1"
 # --- QR code generation (WatchPairingScreen) ---
 zxingCore = "3.5.3"
 
+# --- Health Services for Wear OS (passive HR + steps) ---
+healthServicesClient = "1.1.0-alpha04"
+concurrentFuturesKtx = "1.1.0"
+
 # --- Firebase (FCM silent push for medication sync) ---
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
@@ -102,6 +106,10 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 
 # --- QR code generation ---
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
+
+# --- Health Services for Wear OS ---
+health-services-client = { group = "androidx.health", name = "health-services-client", version.ref = "healthServicesClient" }
+concurrent-futures-ktx = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version.ref = "concurrentFuturesKtx" }
 
 # --- Firebase (FCM) ---
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }

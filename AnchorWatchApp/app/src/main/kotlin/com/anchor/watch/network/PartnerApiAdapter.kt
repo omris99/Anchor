@@ -109,6 +109,10 @@ object PartnerApi {
     fun pairing(context: Context): PartnerPairingApi =
         PartnerPairingApi(retrofit(context).create(PartnerPairingService::class.java))
 
+    /** Adapter implementing SOURCE's [HealthMetricsApi]. */
+    fun healthMetrics(context: Context): HealthMetricsApi =
+        HealthMetricsApi(retrofit(context).create(PartnerHealthMetricsService::class.java))
+
     /** Registers the FCM token with the backend so it can push medication sync messages. */
     suspend fun registerFcmToken(context: Context, token: String): Boolean {
         return withContext(Dispatchers.IO) {
@@ -152,6 +156,11 @@ internal interface PartnerMedicationService {
 internal interface PartnerCheckInService {
     @POST("checkins")
     suspend fun submit(@Body body: CheckInRequestDto): retrofit2.Response<CheckInResponseDto>
+}
+
+internal interface PartnerHealthMetricsService {
+    @POST("health-metrics")
+    suspend fun post(@Body body: HealthMetricsRequestDto): retrofit2.Response<Unit>
 }
 
 internal interface PartnerFcmService {
@@ -225,6 +234,13 @@ internal data class MedicationDto(
 
 @JsonClass(generateAdapter = true)
 internal data class MedicationStatusDto(
+    val timestamp: Long,
+)
+
+@JsonClass(generateAdapter = true)
+internal data class HealthMetricsRequestDto(
+    val heart_rate: Int?,
+    val steps: Int?,
     val timestamp: Long,
 )
 
@@ -312,6 +328,31 @@ internal class PartnerMedicationApi(
         statusTimestamp = status_timestamp,
         daysOfWeek = days_of_week ?: emptyList(),
     )
+}
+
+class HealthMetricsApi internal constructor(
+    private val service: PartnerHealthMetricsService,
+) {
+    suspend fun post(heartRate: Int?, steps: Int?): Boolean =
+        withContext(Dispatchers.IO) {
+            android.util.Log.d("HealthMetricsApi", "POST health-metrics — heartRate=$heartRate, steps=$steps")
+            runCatching {
+                val response = service.post(
+                    HealthMetricsRequestDto(
+                        heart_rate = heartRate,
+                        steps = steps,
+                        timestamp = System.currentTimeMillis(),
+                    )
+                )
+                android.util.Log.d("HealthMetricsApi", "Response: ${response.code()} ${response.message()}")
+                if (!response.isSuccessful) {
+                    android.util.Log.e("HealthMetricsApi", "Error body: ${response.errorBody()?.string()}")
+                }
+                response.isSuccessful
+            }.onFailure { e ->
+                android.util.Log.e("HealthMetricsApi", "Request failed", e)
+            }.getOrDefault(false)
+        }
 }
 
 internal class PartnerCheckInApi(

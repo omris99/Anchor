@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     Image,
     ImageBackground,
@@ -11,13 +12,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
+import { useFocusEffect } from '@react-navigation/native';
+import { UserContext } from '../../logic/contexts/UserContext';
+import { apiRequest } from '../../logic/services/api/ApiClient';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const METRICS = [
     { key: 'heartRate', label: 'דופק' },
     { key: 'steps', label: 'צעדים' },
-    { key: 'sleep', label: 'שינה' },
 ];
 
 // TODO: LOAD — יש לטעון נתוני בריאות אמיתיים מהשרת.
@@ -63,8 +66,21 @@ const ABNORMAL_METRICS = [
 ];
 
 export default function HealthDataScreen({ navigation }) {
+    const { user } = useContext(UserContext);
     const [selectedMetric, setSelectedMetric] = useState('heartRate');
+    const [latestMetrics, setLatestMetrics] = useState(null);
+    const [loadingMetrics, setLoadingMetrics] = useState(true);
     const metricData = MOCK_DATA[selectedMetric];
+
+    useFocusEffect(
+        useCallback(() => {
+            setLoadingMetrics(true);
+            apiRequest(`/users/${user.userId}/health-metrics/latest`)
+                .then(data => setLatestMetrics(data.latest))
+                .catch(() => {})
+                .finally(() => setLoadingMetrics(false));
+        }, [user.userId])
+    );
 
     const chartConfig = {
         backgroundGradientFrom: '#fff',
@@ -73,7 +89,7 @@ export default function HealthDataScreen({ navigation }) {
         labelColor: () => '#666',
         strokeWidth: 2,
         propsForDots: { r: '4', strokeWidth: '2', stroke: '#2a838f' },
-        decimalPlaces: selectedMetric === 'sleep' ? 1 : 0,
+        decimalPlaces: 0,
     };
 
     return (
@@ -143,25 +159,28 @@ export default function HealthDataScreen({ navigation }) {
 
                     {/* Last monitoring */}
                     <View style={styles.card}>
-                        <Text style={styles.sectionLabel}>
-                            ניטור אחרון ({LAST_MONITORING.timestamp})
-                        </Text>
-                        <View style={styles.metricRow}>
-                            <Text style={styles.metricName}>דופק:</Text>
-                            <Text style={styles.metricValue}>{LAST_MONITORING.heartRate} BPM</Text>
-                        </View>
-                        <View style={styles.metricRow}>
-                            <Text style={styles.metricName}>שינה:</Text>
-                            <Text style={styles.metricValue}>
-                                {LAST_MONITORING.sleepHours} שע׳ · {LAST_MONITORING.sleepQuality}
-                            </Text>
-                        </View>
-                        <View style={styles.metricRow}>
-                            <Text style={styles.metricName}>מד צעדים:</Text>
-                            <Text style={styles.metricValue}>
-                                {LAST_MONITORING.steps.toLocaleString()} צעדים
-                            </Text>
-                        </View>
+                        {loadingMetrics ? (
+                            <ActivityIndicator color="#48AEBE" style={{ paddingVertical: 16 }} />
+                        ) : (() => {
+                            const ts = latestMetrics?.timestamp
+                                ? new Date(latestMetrics.timestamp).toLocaleString('he-IL')
+                                : LAST_MONITORING.timestamp;
+                            const hr = latestMetrics?.heart_rate ?? LAST_MONITORING.heartRate;
+                            const steps = latestMetrics?.steps ?? LAST_MONITORING.steps;
+                            return (
+                                <>
+                                    <Text style={styles.sectionLabel}>ניטור אחרון ({ts})</Text>
+                                    <View style={styles.metricRow}>
+                                        <Text style={styles.metricName}>דופק:</Text>
+                                        <Text style={styles.metricValue}>{hr} BPM</Text>
+                                    </View>
+                                    <View style={styles.metricRow}>
+                                        <Text style={styles.metricName}>מד צעדים:</Text>
+                                        <Text style={styles.metricValue}>{steps.toLocaleString()} צעדים</Text>
+                                    </View>
+                                </>
+                            );
+                        })()}
                     </View>
 
                     {/* Abnormal metrics */}

@@ -95,6 +95,13 @@ deploy_lambda "mobile-fcm-token" "mobile-fcm-token"
 # User profile
 deploy_lambda "user-profile" "user-profile"
 
+# User wellness status
+deploy_lambda "user-status" "user-status"
+
+# Health metrics (watch → dashboard)
+deploy_lambda "health-metrics-post" "health-metrics-post"
+deploy_lambda "health-metrics-get"  "health-metrics-get"
+
 echo ""
 echo "[3/3] Done!"
 echo ""
