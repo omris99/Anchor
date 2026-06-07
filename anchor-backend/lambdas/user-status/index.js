@@ -58,7 +58,7 @@ exports.handler = async (event) => {
 
     const lastCheckin = checkinsResult.Items?.[0];
     if (!lastCheckin) {
-      return reply(200, { status: "red", reason: "לא נרשם דיווח מעולם" });
+      return reply(200, { status: "green", reason: "הכל נראה תקין" });
     }
 
     const lastCheckinMs = new Date(lastCheckin.timestamp).getTime();
