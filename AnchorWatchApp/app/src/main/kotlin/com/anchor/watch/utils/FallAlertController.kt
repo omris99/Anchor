@@ -1,5 +1,6 @@
 package com.anchor.watch.utils
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,7 +27,11 @@ class FallAlertController(
     private var job: Job? = null
 
     fun start(scope: CoroutineScope) {
-        job?.cancel()
+        if (job?.isActive == true) {
+            Log.d(TAG, "start: already running — skipping restart")
+            return
+        }
+        Log.d(TAG, "start: grace=${graceMs}ms")
         job = scope.launch {
             var remaining = graceMs
             while (remaining > 0) {
@@ -34,16 +39,29 @@ class FallAlertController(
                 delay(tickIntervalMs)
                 remaining -= tickIntervalMs
             }
+            Log.i(TAG, "countdown elapsed — triggering SOS")
             _state.value = State.Triggered
-            onTrigger()
+            runCatching { onTrigger() }.onFailure { e ->
+                Log.e(TAG, "onTrigger threw an exception", e)
+            }
         }
     }
 
     fun cancel() {
-        if (_state.value !is State.Counting) return
+        if (_state.value !is State.Counting) {
+            Log.w(TAG, "cancel() called but state is ${_state.value} — ignoring")
+            return
+        }
+        Log.i(TAG, "cancel: user dismissed alert as false positive")
         job?.cancel()
         job = null
         _state.value = State.Cancelled
-        onCancel()
+        runCatching { onCancel() }.onFailure { e ->
+            Log.e(TAG, "onCancel threw an exception", e)
+        }
+    }
+
+    companion object {
+        private const val TAG = "FallAlertController"
     }
 }
