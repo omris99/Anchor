@@ -2,6 +2,7 @@ package com.anchor.watch.services
 
 import android.content.Context
 import android.content.Intent
+import android.os.PowerManager
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -51,6 +52,19 @@ class WatchFcmService : FirebaseMessagingService() {
                 MedicationAlarmService.cancel(applicationContext, medId)
             }
             "request_checkin" -> {
+                // Wake the screen immediately — same pattern as MedicationAlarmReceiver.
+                // Firebase holds a CPU WakeLock during onMessageReceived(), but that
+                // doesn't turn the screen on. ACQUIRE_CAUSES_WAKEUP does.
+                @Suppress("DEPRECATION")
+                (applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager)
+                    .newWakeLock(
+                        PowerManager.FULL_WAKE_LOCK or
+                            PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                            PowerManager.ON_AFTER_RELEASE,
+                        "anchor:checkin_wakeup",
+                    )
+                    .acquire(10_000L)
+
                 val intent = Intent(applicationContext, CheckInActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }

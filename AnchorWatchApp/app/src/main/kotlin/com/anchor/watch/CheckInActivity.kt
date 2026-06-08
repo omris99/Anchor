@@ -1,9 +1,11 @@
 package com.anchor.watch
 
+import android.app.KeyguardManager
 import android.content.Context
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -31,11 +33,22 @@ class CheckInActivity : ComponentActivity() {
     private var checkInContext = CheckInContext()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        @Suppress("DEPRECATION")
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
+        )
         super.onCreate(savedInstanceState)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            (getSystemService(KEYGUARD_SERVICE) as KeyguardManager)
+                .requestDismissKeyguard(this, null)
         }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
