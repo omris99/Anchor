@@ -36,19 +36,6 @@ class MedicationActivity : ComponentActivity() {
             setTurnScreenOn(true)
         }
 
-        // TODO: MedicationActivity still doesn't appear on screen after wakeup from sleep —
-        //  the watch face stays visible instead. The wake lock (in MedicationAlarmService)
-        //  successfully turns the screen on, and requestDismissKeyguard() is called here,
-        //  but the Watch Face retains focus. Approaches tried and failed:
-        //   - fullScreenIntent (requires USE_FULL_SCREEN_INTENT granted by user on API 34+)
-        //   - FLAG_ACTIVITY_CLEAR_TASK (made things worse on Wear OS)
-        //   - setSilent(true) on IMPORTANCE_HIGH notification (silently disables fullScreenIntent)
-        //  Next things to try:
-        //   - Post a second IMPORTANCE_HIGH + fullScreenIntent notification (separate from the
-        //     foreground service notification) and guide the user to grant USE_FULL_SCREEN_INTENT
-        //   - Check if KeyguardManager.isKeyguardLocked() is even true at this point
-        //   - Use WearableActivityController / AmbientModeSupport to intercept the ambient→
-        //     interactive transition and force focus before the Watch Face claims it
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             (getSystemService(KEYGUARD_SERVICE) as KeyguardManager)
                 .requestDismissKeyguard(this, null)
