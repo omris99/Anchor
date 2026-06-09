@@ -67,13 +67,16 @@ class EmergencyOrchestrator(
     val state: StateFlow<EmergencyState> = _state.asStateFlow()
 
     private var job: Job? = null
+    private var pendingType: String = "SOS"
 
     fun start(
         graceSeconds: Int,
         scope: CoroutineScope,
+        type: String = "SOS",
         onCountdownComplete: (() -> Unit)? = null,
         onDispatched: ((online: Boolean) -> Unit)? = null,
     ) {
+        pendingType = type
         Log.i(OTAG, "start: grace=${graceSeconds}s")
         cancel()
         job = scope.launch {
@@ -115,7 +118,7 @@ class EmergencyOrchestrator(
             id = idGenerator(),
             timestamp = clock(),
             userId = "self",
-            type = "SOS",
+            type = pendingType,
             isSynced = false,
         )
         Log.d(OTAG, "dispatch: saving event id=${event.id}")
@@ -173,12 +176,14 @@ class EmergencyService : Service() {
             ACTION_START -> {
                 val grace = intent.getIntExtra(EXTRA_GRACE_SECONDS, DEFAULT_GRACE_SECONDS)
                     .coerceAtLeast(1)
-                Log.i(TAG, "ACTION_START: grace=${grace}s")
+                val type = intent.getStringExtra(EXTRA_TYPE) ?: "SOS"
+                Log.i(TAG, "ACTION_START: grace=${grace}s type=$type")
                 startForegroundCompat()
                 runCatching { vibrate() }.onFailure { e -> Log.e(TAG, "vibrate threw", e) }
                 orchestrator.start(
                     graceSeconds = grace,
                     scope = scope,
+                    type = type,
                     onCountdownComplete = {
                         Log.i(TAG, "countdown complete — playing alarm")
                         // Ringtone must be started on the main thread to avoid native crashes
@@ -319,6 +324,7 @@ class EmergencyService : Service() {
         const val ACTION_START = "com.anchor.watch.action.SOS_START"
         const val ACTION_CANCEL = "com.anchor.watch.action.SOS_CANCEL"
         const val EXTRA_GRACE_SECONDS = "grace_seconds"
+        const val EXTRA_TYPE = "emergency_type"
         private const val CHANNEL_ID = "anchor_emergency"
         private const val NOTIFICATION_ID = 911
         private const val SENT_DISPLAY_MS = 3000L
@@ -330,10 +336,11 @@ class EmergencyService : Service() {
 
         val liveState: MutableStateFlow<EmergencyState> = MutableStateFlow(EmergencyState.Idle)
 
-        fun start(context: Context, graceSeconds: Int = DEFAULT_GRACE_SECONDS) {
+        fun start(context: Context, graceSeconds: Int = DEFAULT_GRACE_SECONDS, type: String = "SOS") {
             val intent = Intent(context, EmergencyService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_GRACE_SECONDS, graceSeconds)
+                putExtra(EXTRA_TYPE, type)
             }
             ContextCompat.startForegroundService(context, intent)
         }

@@ -128,7 +128,7 @@ class FallDetectionService : Service(), SensorEventListener {
         val controller = FallAlertController(
             onTrigger = {
                 Log.i(TAG, "countdown elapsed in service — firing EmergencyService")
-                EmergencyService.start(applicationContext, 1)
+                EmergencyService.start(applicationContext, 1, "FALL")
                 acknowledgeAlertHandled()
             },
             onCancel = {
