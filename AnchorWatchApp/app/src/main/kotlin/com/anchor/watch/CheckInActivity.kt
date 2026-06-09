@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -24,6 +25,10 @@ import kotlinx.coroutines.launch
 
 class CheckInActivity : ComponentActivity() {
 
+    companion object {
+        private const val TAG = "AnchorCheckInDebug"
+    }
+
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(LocaleHelper.wrapContext(base))
     }
@@ -33,6 +38,7 @@ class CheckInActivity : ComponentActivity() {
     private var checkInContext = CheckInContext()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onCreate called — Activity IS being created  isKeyguardLocked=${(getSystemService(KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked}")
         @Suppress("DEPRECATION")
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or

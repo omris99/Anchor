@@ -1,12 +1,20 @@
 package com.anchor.watch.services
 
+import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.PowerManager
+import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.anchor.watch.CheckInActivity
+import com.anchor.watch.R
 import com.anchor.watch.network.PartnerApi
 import com.anchor.watch.network.WatchKeyStore
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -52,28 +60,90 @@ class WatchFcmService : FirebaseMessagingService() {
                 MedicationAlarmService.cancel(applicationContext, medId)
             }
             "request_checkin" -> {
+                val pm = applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+                Log.d(TAG, "request_checkin received  screenOn=${pm.isInteractive}")
+
                 // Wake the screen immediately — same pattern as MedicationAlarmReceiver.
                 // Firebase holds a CPU WakeLock during onMessageReceived(), but that
                 // doesn't turn the screen on. ACQUIRE_CAUSES_WAKEUP does.
                 @Suppress("DEPRECATION")
-                (applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager)
-                    .newWakeLock(
-                        PowerManager.FULL_WAKE_LOCK or
-                            PowerManager.ACQUIRE_CAUSES_WAKEUP or
-                            PowerManager.ON_AFTER_RELEASE,
-                        "anchor:checkin_wakeup",
-                    )
-                    .acquire(10_000L)
+                pm.newWakeLock(
+                    PowerManager.FULL_WAKE_LOCK or
+                        PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                        PowerManager.ON_AFTER_RELEASE,
+                    "anchor:checkin_wakeup",
+                ).acquire(10_000L)
+
+                Log.d(TAG, "WakeLock acquired  screenOn=${pm.isInteractive}")
 
                 val intent = Intent(applicationContext, CheckInActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                applicationContext.startActivity(intent)
+                val pi = PendingIntent.getActivity(
+                    applicationContext,
+                    REQUEST_CHECKIN_ALERT,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+
+                // Layer 1: direct startActivity() — succeeds when Firebase grants a BAL
+                // window (high-priority FCM) and the process is already warm.
+                runCatching { applicationContext.startActivity(intent) }
+                    .onSuccess { Log.d(TAG, "startActivity(CheckInActivity): success") }
+                    .onFailure { Log.e(TAG, "startActivity(CheckInActivity): FAILED — ${it::class.simpleName}: ${it.message}") }
+
+                // Layer 2: AlarmManager.setAlarmClock() — not rate-limited and bypasses
+                // BAL restrictions entirely. Fires immediately; reliable even on cold-start.
+                val am = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                am.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(System.currentTimeMillis(), pi),
+                    pi,
+                )
+                Log.d(TAG, "setAlarmClock (immediate) fired")
+
+                // Layer 3: FullScreenIntent notification — visual fallback above lock screen.
+                val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                ensureCheckinChannel(nm)
+                val notif = NotificationCompat.Builder(applicationContext, CHECKIN_CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                    .setContentTitle(applicationContext.getString(R.string.checkin_notification_title))
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setFullScreenIntent(pi, true)
+                    .setContentIntent(pi)
+                    .setAutoCancel(true)
+                    .build()
+                nm.notify(CHECKIN_NOTIFICATION_ID, notif)
+                Log.d(TAG, "fullScreenIntent notification posted")
             }
         }
     }
 
     companion object {
+        private const val TAG = "AnchorCheckInDebug"
+        private const val CHECKIN_CHANNEL_ID = "anchor_checkin_alert"
+        private const val CHECKIN_NOTIFICATION_ID = 920
+        private const val REQUEST_CHECKIN_ALERT = 921
+
+        private fun ensureCheckinChannel(nm: NotificationManager) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                nm.getNotificationChannel(CHECKIN_CHANNEL_ID) == null
+            ) {
+                nm.createNotificationChannel(
+                    NotificationChannel(
+                        CHECKIN_CHANNEL_ID,
+                        "Check-in alert",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        setSound(null, null)
+                        enableVibration(false)
+                        lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                    },
+                )
+            }
+        }
+
         private suspend fun saveFcmTokenLocally(context: Context, token: String) {
             context.fcmTokenDataStore.edit { it[KEY_FCM_TOKEN] = token }
         }

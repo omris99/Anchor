@@ -14,6 +14,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -110,13 +111,15 @@ class MedicationAlarmService : Service() {
             ACTION_FIRE -> {
                 val id = intent.getStringExtra(EXTRA_MED_ID)
                 if (id == null) {
+                    Log.e(TAG, "ACTION_FIRE received but EXTRA_MED_ID is null")
                     stopSelfSafe()
                     return START_NOT_STICKY
                 }
+                val pm = getSystemService(POWER_SERVICE) as PowerManager
+                Log.d(TAG, "ACTION_FIRE: id=$id  screenOn=${pm.isInteractive}")
                 liveMedicationId.value = id
                 startForegroundCompat()
-                // Gentle nudge on every fire — including each 15-min snooze re-fire — so
-                // an ignored reminder keeps softly re-alerting until taken.
+                Log.d(TAG, "startForeground done")
                 gentleAlert()
                 launchActivity(id)
                 orchestrator.start(scope, id)
@@ -183,16 +186,20 @@ class MedicationAlarmService : Service() {
     }
 
     private fun launchActivity(medicationId: String) {
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        Log.d(TAG, "launchActivity start  screenOn=${pm.isInteractive}")
+
         // Layer 1: ACQUIRE_CAUSES_WAKEUP forces the screen on. Without this, layers 2
         // and 3 fail silently when the screen is off.
         @Suppress("DEPRECATION")
-        val wl = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(
+        val wl = pm.newWakeLock(
             PowerManager.FULL_WAKE_LOCK or
                 PowerManager.ACQUIRE_CAUSES_WAKEUP or
                 PowerManager.ON_AFTER_RELEASE,
             "anchor:med_wakeup",
         )
         wl.acquire(3_000L)
+        Log.d(TAG, "WakeLock acquired  screenOn=${pm.isInteractive}")
 
         val launch = Intent(this, MedicationActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -207,7 +214,9 @@ class MedicationAlarmService : Service() {
 
         // Layer 2: direct startActivity() — succeeds when the foreground-service
         // exception allows background launches.
-        startActivity(launch)
+        runCatching { startActivity(launch) }
+            .onSuccess { Log.d(TAG, "startActivity: success") }
+            .onFailure { Log.e(TAG, "startActivity: FAILED — ${it::class.simpleName}: ${it.message}") }
 
         // Layer 3a: AlarmManager.setAlarmClock() — not rate-limited by the OS,
         // fires even when direct startActivity() is blocked by background restrictions.
@@ -216,11 +225,20 @@ class MedicationAlarmService : Service() {
             AlarmManager.AlarmClockInfo(System.currentTimeMillis(), activityPi),
             activityPi,
         )
+        Log.d(TAG, "setAlarmClock (immediate) fired")
 
         // Layer 3b: IMPORTANCE_HIGH notification with fullScreenIntent on a dedicated
         // channel (no setSilent — that silently disables fullScreenIntent on the same
         // notification). The foreground service notification uses a separate LOW channel
         // so it does not interfere.
+        val canUseFullScreenIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            notificationManager.canUseFullScreenIntent().also {
+                Log.d(TAG, "canUseFullScreenIntent=$it")
+            }
+        } else {
+            Log.d(TAG, "canUseFullScreenIntent=true (pre-API-34)")
+            true
+        }
         val alertNotif = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(getString(R.string.medication_notification_title))
@@ -233,6 +251,7 @@ class MedicationAlarmService : Service() {
             .setAutoCancel(false)
             .build()
         notificationManager.notify(ALERT_NOTIFICATION_ID, alertNotif)
+        Log.d(TAG, "fullScreenIntent notification posted (canUseFullScreenIntent=$canUseFullScreenIntent)")
     }
 
     private fun startForegroundCompat() {
@@ -305,6 +324,7 @@ class MedicationAlarmService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
+        private const val TAG = "AnchorMedDebug"
         const val ACTION_FIRE = "com.anchor.watch.action.MED_FIRE"
         const val ACTION_CONFIRM = "com.anchor.watch.action.MED_CONFIRM"
         const val EXTRA_MED_ID = "medication_id"

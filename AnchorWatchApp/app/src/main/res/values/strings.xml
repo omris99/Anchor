@@ -33,6 +33,7 @@
     <string name="sos_notification_text">Countdown in progress</string>
     <string name="cd_sos_cancel">Cancel emergency alert</string>
 
+    <string name="checkin_notification_title">Daily check-in</string>
     <string name="checkin_question">How are you feeling today?</string>
     <string name="checkin_time_left_template">Time left: %1$d:%2$02d</string>
     <string name="cd_checkin_sad">I feel sad</string>
