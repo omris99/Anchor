@@ -166,10 +166,11 @@ class MedicationAlarmService : Service() {
 
     private fun playGentleChime() {
         stopRingtone()
-        // TYPE_ALARM is reliably present on Wear OS and bypasses DND/Theater Mode.
-        // Fall back to TYPE_NOTIFICATION on devices that lack an alarm URI.
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        // TYPE_NOTIFICATION gives a short, gentle chime instead of the looping alarm.
+        // USAGE_ALARM on AudioAttributes is still required so the sound bypasses
+        // Theater Mode / DND on Wear OS (the URI alone does not determine this).
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: return
         val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
         ringtone.audioAttributes = AudioAttributes.Builder()
