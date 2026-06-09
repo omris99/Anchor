@@ -12,6 +12,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -39,6 +41,7 @@ class FallDetectionService : Service(), SensorEventListener {
     private val detector = FallDetector()
     private var alertInFlight: Boolean = false
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var activeAlarmRingtone: android.media.Ringtone? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -91,9 +94,10 @@ class FallDetectionService : Service(), SensorEventListener {
     private fun launchFallAlert() {
         Log.d(TAG, "launchFallAlert: starting countdown in service + best-effort activity launch")
 
-        // Vibrate immediately from the service — the activity might never open, so the
-        // user must get tactile feedback regardless.
+        // Vibrate + play alarm immediately from the service — the activity might never
+        // open, so the user must get tactile + auditory feedback regardless.
         vibrateFallAlert()
+        playAlarmRingtone()
 
         // Wake the screen before attempting any activity launch. Without this, Android
         // won't display an activity over the lock/ambient screen even with setTurnScreenOn.
@@ -224,6 +228,7 @@ class FallDetectionService : Service(), SensorEventListener {
 
     fun acknowledgeAlertHandled() {
         Log.i(TAG, "acknowledgeAlertHandled: cancelling countdown and resetting state")
+        stopAlarmRingtone()
         // Clear activeController before cancel() to prevent recursive loops:
         // cancel() → onCancel() → acknowledgeAlertHandled() → cancel() → ...
         // After null-ing activeController, the recursive call finds ctrl=null and stops.
@@ -233,6 +238,23 @@ class FallDetectionService : Service(), SensorEventListener {
         alertInFlight = false
         detector.reset()
         notificationManager.cancel(FALL_ALERT_NOTIFICATION_ID)
+    }
+
+    private fun playAlarmRingtone() {
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) ?: return
+        val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
+        ringtone.audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        activeAlarmRingtone = ringtone
+        runCatching { ringtone.play() }.onFailure { e -> Log.e(TAG, "playAlarmRingtone: play threw", e) }
+        Log.d(TAG, "playAlarmRingtone: playing")
+    }
+
+    private fun stopAlarmRingtone() {
+        runCatching { activeAlarmRingtone?.stop() }.onFailure { e -> Log.e(TAG, "stopAlarmRingtone: stop threw", e) }
+        activeAlarmRingtone = null
     }
 
     private fun stopSelfSafe() {
@@ -248,6 +270,7 @@ class FallDetectionService : Service(), SensorEventListener {
 
     override fun onDestroy() {
         Log.d(TAG, "onDestroy")
+        stopAlarmRingtone()
         runCatching { sensorManager.unregisterListener(this) }
         serviceScope.cancel()
         super.onDestroy()

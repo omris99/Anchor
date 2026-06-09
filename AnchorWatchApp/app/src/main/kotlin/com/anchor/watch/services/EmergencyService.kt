@@ -180,16 +180,17 @@ class EmergencyService : Service() {
                 Log.i(TAG, "ACTION_START: grace=${grace}s type=$type")
                 startForegroundCompat()
                 runCatching { vibrate() }.onFailure { e -> Log.e(TAG, "vibrate threw", e) }
+                // Alarm plays throughout the countdown, stops when countdown ends.
+                runCatching { playLocalAlarm() }.onFailure { e -> Log.e(TAG, "playLocalAlarm threw", e) }
                 orchestrator.start(
                     graceSeconds = grace,
                     scope = scope,
                     type = type,
                     onCountdownComplete = {
-                        Log.i(TAG, "countdown complete — playing alarm")
-                        // Ringtone must be started on the main thread to avoid native crashes
-                        // on Samsung and other OEM implementations.
+                        Log.i(TAG, "countdown complete — stopping alarm before dispatch")
+                        // Ringtone.stop() must run on the main thread (OEM native constraint).
                         mainHandler.post {
-                            runCatching { playLocalAlarm() }.onFailure { e -> Log.e(TAG, "playLocalAlarm threw", e) }
+                            runCatching { stopAlarmRingtone() }.onFailure { e -> Log.e(TAG, "stopAlarmRingtone threw", e) }
                         }
                     },
                     onDispatched = { online ->

@@ -19,5 +19,5 @@ object FallDetectionConstants {
     const val STILLNESS_DURATION_MS: Long = 400L
 
     // How long the user has to press "אני בסדר" before family is alerted.
-    const val GRACE_PERIOD_MS: Long = 15_000L
+    const val GRACE_PERIOD_MS: Long = 9_000L
 }
