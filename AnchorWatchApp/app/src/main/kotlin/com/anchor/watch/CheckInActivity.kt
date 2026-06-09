@@ -2,9 +2,14 @@ package com.anchor.watch
 
 import android.app.KeyguardManager
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -21,6 +26,7 @@ import com.anchor.watch.screens.DailyCheckInScreen
 import com.anchor.watch.services.CheckInSyncWorker
 import com.anchor.watch.utils.LocaleHelper
 import com.anchor.watch.utils.requestBestLocation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class CheckInActivity : ComponentActivity() {
@@ -60,6 +66,32 @@ class CheckInActivity : ComponentActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = Unit
         })
+
+        // Gentle double-tap vibration (same pattern as MedicationAlarmService).
+        val vibEffect = VibrationEffect.createWaveform(longArrayOf(0, 120, 80, 120), -1)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator.vibrate(vibEffect)
+        } else {
+            @Suppress("DEPRECATION")
+            (getSystemService(VIBRATOR_SERVICE) as Vibrator).vibrate(vibEffect)
+        }
+
+        // Play a gentle sound for 2 seconds when the check-in screen appears.
+        // TYPE_ALARM + USAGE_ALARM bypasses Theater Mode/DND on Wear OS (same pattern as MedicationAlarmService).
+        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val ringtone = ringtoneUri?.let { RingtoneManager.getRingtone(this, it) }
+        ringtone?.let {
+            it.audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            it.play()
+            lifecycleScope.launch {
+                delay(2_000L)
+                it.stop()
+            }
+        }
 
         // Fill battery immediately (instant), then fetch live location in the background.
         checkInContext = CheckInContext(batteryPercent = readBatteryPercent())
