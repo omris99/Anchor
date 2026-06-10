@@ -30,7 +30,7 @@ class HealthMetricsService : PassiveListenerService() {
 
     override fun onNewDataPointsReceived(dataPoints: DataPointContainer) {
         val hrPoints = dataPoints.getData(DataType.HEART_RATE_BPM)
-        val heartRate = hrPoints.lastOrNull()?.value?.toInt()
+        val heartRate = hrPoints.lastOrNull()?.value?.toInt()?.takeIf { it > 0 }
 
         // STEPS_DAILY: DeltaDataType<Long, IntervalDataPoint<Long>> — confirmed in JAR.
         // Only arrives when new steps occur, so we persist the last known value.

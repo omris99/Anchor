@@ -31,6 +31,7 @@
     <string name="sos_notification_text">ספירה לאחור פעילה</string>
     <string name="cd_sos_cancel">בטל שליחת התראת חירום</string>
 
+    <string name="checkin_notification_title">בדיקת נוכחות יומית</string>
     <string name="checkin_question">איך אתה מרגיש היום?</string>
     <string name="checkin_time_left_template">נשאר: %1$d:%2$02d</string>
     <string name="cd_checkin_sad">אני מרגיש עצוב</string>

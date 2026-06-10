@@ -14,6 +14,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -69,10 +70,12 @@ class MedicationAlarmService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var orchestrator: MedicationOrchestrator
     private lateinit var repository: MedicationRepository
+    private lateinit var notificationManager: NotificationManager
     private var activeRingtone: Ringtone? = null
 
     override fun onCreate() {
         super.onCreate()
+        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         createChannel()
         val store = MedicationLocalStore(applicationContext)
         repository = MedicationRepository(
@@ -108,13 +111,15 @@ class MedicationAlarmService : Service() {
             ACTION_FIRE -> {
                 val id = intent.getStringExtra(EXTRA_MED_ID)
                 if (id == null) {
+                    Log.e(TAG, "ACTION_FIRE received but EXTRA_MED_ID is null")
                     stopSelfSafe()
                     return START_NOT_STICKY
                 }
+                val pm = getSystemService(POWER_SERVICE) as PowerManager
+                Log.d(TAG, "ACTION_FIRE: id=$id  screenOn=${pm.isInteractive}")
                 liveMedicationId.value = id
                 startForegroundCompat()
-                // Gentle nudge on every fire — including each 15-min snooze re-fire — so
-                // an ignored reminder keeps softly re-alerting until taken.
+                Log.d(TAG, "startForeground done")
                 gentleAlert()
                 launchActivity(id)
                 orchestrator.start(scope, id)
@@ -161,10 +166,11 @@ class MedicationAlarmService : Service() {
 
     private fun playGentleChime() {
         stopRingtone()
-        // TYPE_ALARM is reliably present on Wear OS and bypasses DND/Theater Mode.
-        // Fall back to TYPE_NOTIFICATION on devices that lack an alarm URI.
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        // TYPE_NOTIFICATION gives a short, gentle chime instead of the looping alarm.
+        // USAGE_ALARM on AudioAttributes is still required so the sound bypasses
+        // Theater Mode / DND on Wear OS (the URI alone does not determine this).
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: return
         val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
         ringtone.audioAttributes = AudioAttributes.Builder()
@@ -181,25 +187,72 @@ class MedicationAlarmService : Service() {
     }
 
     private fun launchActivity(medicationId: String) {
-        // ACQUIRE_CAUSES_WAKEUP forces the screen on before the activity appears.
-        // MedicationActivity then calls requestDismissKeyguard() to push itself
-        // above the Watch Face that normally reclaims focus on wakeup.
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        Log.d(TAG, "launchActivity start  screenOn=${pm.isInteractive}")
+
+        // Layer 1: ACQUIRE_CAUSES_WAKEUP forces the screen on. Without this, layers 2
+        // and 3 fail silently when the screen is off.
         @Suppress("DEPRECATION")
-        val wl = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(
+        val wl = pm.newWakeLock(
             PowerManager.FULL_WAKE_LOCK or
                 PowerManager.ACQUIRE_CAUSES_WAKEUP or
                 PowerManager.ON_AFTER_RELEASE,
             "anchor:med_wakeup",
         )
         wl.acquire(3_000L)
+        Log.d(TAG, "WakeLock acquired  screenOn=${pm.isInteractive}")
 
-        // FLAG_ACTIVITY_CLEAR_TASK is intentionally omitted: with singleInstance it's
-        // redundant, and on Wear OS it can prevent the activity from taking focus.
         val launch = Intent(this, MedicationActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             putExtra(EXTRA_MED_ID, medicationId)
         }
-        startActivity(launch)
+        val activityPi = PendingIntent.getActivity(
+            this,
+            REQUEST_MED_ALERT,
+            launch,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        // Layer 2: direct startActivity() — succeeds when the foreground-service
+        // exception allows background launches.
+        runCatching { startActivity(launch) }
+            .onSuccess { Log.d(TAG, "startActivity: success") }
+            .onFailure { Log.e(TAG, "startActivity: FAILED — ${it::class.simpleName}: ${it.message}") }
+
+        // Layer 3a: AlarmManager.setAlarmClock() — not rate-limited by the OS,
+        // fires even when direct startActivity() is blocked by background restrictions.
+        val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        am.setAlarmClock(
+            AlarmManager.AlarmClockInfo(System.currentTimeMillis(), activityPi),
+            activityPi,
+        )
+        Log.d(TAG, "setAlarmClock (immediate) fired")
+
+        // Layer 3b: IMPORTANCE_HIGH notification with fullScreenIntent on a dedicated
+        // channel (no setSilent — that silently disables fullScreenIntent on the same
+        // notification). The foreground service notification uses a separate LOW channel
+        // so it does not interfere.
+        val canUseFullScreenIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            notificationManager.canUseFullScreenIntent().also {
+                Log.d(TAG, "canUseFullScreenIntent=$it")
+            }
+        } else {
+            Log.d(TAG, "canUseFullScreenIntent=true (pre-API-34)")
+            true
+        }
+        val alertNotif = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(getString(R.string.medication_notification_title))
+            .setContentIntent(activityPi)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setFullScreenIntent(activityPi, true)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .build()
+        notificationManager.notify(ALERT_NOTIFICATION_ID, alertNotif)
+        Log.d(TAG, "fullScreenIntent notification posted (canUseFullScreenIntent=$canUseFullScreenIntent)")
     }
 
     private fun startForegroundCompat() {
@@ -224,23 +277,36 @@ class MedicationAlarmService : Service() {
     }
 
     private fun createChannel() {
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        // IMPORTANCE_HIGH is required for fullScreenIntent to fire on Wear OS.
-        // Sound and vibration are disabled here — we trigger them directly via gentleAlert().
-        val ch = NotificationChannel(
-            CHANNEL_ID,
-            getString(R.string.medication_notification_title),
-            NotificationManager.IMPORTANCE_HIGH,
-        ).apply {
-            description = getString(R.string.medication_notification_text)
-            setSound(null, null)
-            enableVibration(false)
-            enableLights(false)
-        }
-        nm.createNotificationChannel(ch)
+        // Foreground service channel: LOW so it stays silent and does not interfere
+        // with fullScreenIntent (setSilent on IMPORTANCE_HIGH silently disables it).
+        notificationManager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.medication_notification_title),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = getString(R.string.medication_notification_text)
+                setSound(null, null)
+                enableVibration(false)
+                enableLights(false)
+            },
+        )
+        // Alert channel: HIGH so fullScreenIntent can fire above the lock/watch face.
+        notificationManager.createNotificationChannel(
+            NotificationChannel(
+                ALERT_CHANNEL_ID,
+                getString(R.string.medication_notification_title),
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                setSound(null, null)
+                enableVibration(false)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            },
+        )
     }
 
     private fun stopSelfSafe() {
+        notificationManager.cancel(ALERT_NOTIFICATION_ID)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -259,11 +325,15 @@ class MedicationAlarmService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
+        private const val TAG = "AnchorMedDebug"
         const val ACTION_FIRE = "com.anchor.watch.action.MED_FIRE"
         const val ACTION_CONFIRM = "com.anchor.watch.action.MED_CONFIRM"
         const val EXTRA_MED_ID = "medication_id"
         private const val CHANNEL_ID = "anchor_medication_v2"
+        private const val ALERT_CHANNEL_ID = "anchor_medication_alert_v1"
         private const val NOTIFICATION_ID = 912
+        private const val ALERT_NOTIFICATION_ID = 916
+        private const val REQUEST_MED_ALERT = 917
         private const val REPEAT_AFTER_MISS_MS = 15 * 60 * 1000L
         private const val FIRST_TIMEOUT_MS = 3 * 60 * 1000L
         private const val SECOND_TIMEOUT_MS = 4 * 60 * 1000L
