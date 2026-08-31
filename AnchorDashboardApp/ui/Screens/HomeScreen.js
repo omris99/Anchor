@@ -60,9 +60,9 @@ export default function HomeScreen({ navigation }) {
 
                 <ClassicButton
                     buttonStyle={styles.mainButton}
-                    onPress={() => navigation.navigate('medication-reminders')}
+                    onPress={() => navigation.navigate('reminders-hub')}
                 >
-                    הגדרת תזכורות לתרופות
+                    הגדרת תזכורות
                 </ClassicButton>
 
                 <ClassicButton

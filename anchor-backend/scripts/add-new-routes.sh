@@ -71,6 +71,16 @@ add_route "medication-reminders-dashboard" "GET"    "/users/{id}/medication-remi
 add_route "medication-reminders-dashboard" "POST"   "/users/{id}/medication-reminders"
 add_route "medication-reminders-dashboard" "DELETE" "/users/{id}/medication-reminders/{medId}"
 
+# --- Water reminders (watch — X-Watch-Key) ---
+add_route "water-reminders-get"          "GET"  "/water-reminders/{userId}"
+add_route "water-reminders-confirm"      "POST" "/water-reminders/{id}/confirm"
+add_route "water-reminders-missed"       "POST" "/water-reminders/{id}/missed"
+add_route "water-reminders-schedule-ack" "POST" "/water-reminders/{id}/schedule-ack"
+
+# --- Water reminders (dashboard — JWT) ---
+add_route "water-reminders-dashboard" "GET" "/users/{id}/water-reminders"
+add_route "water-reminders-dashboard" "PUT" "/users/{id}/water-reminders"
+
 # --- Emergency ---
 add_route "emergency"             "POST" "/emergency"
 add_route "emergency-acknowledge" "POST" "/emergency/{id}/acknowledge"

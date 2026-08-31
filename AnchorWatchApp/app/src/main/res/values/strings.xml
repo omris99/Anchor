@@ -47,6 +47,15 @@
     <string name="cd_medication_confirmed">Medication confirmed as taken</string>
     <string name="medication_notification_title">Medication reminder</string>
     <string name="medication_notification_text">Countdown in progress</string>
+
+    <string name="water_taken">Drank</string>
+    <string name="water_subtitle">Time to drink water</string>
+    <string name="water_confirmed">✓ Drank</string>
+    <string name="cd_water_taken">Confirm water drank</string>
+    <string name="cd_water_confirmed">Water reminder confirmed</string>
+    <string name="water_notification_title">Water reminder</string>
+    <string name="water_notification_text">Countdown in progress</string>
+
     <string name="time_left_template">Time left: %1$d:%2$02d</string>
 
     <string name="fall_detected_title">Fall detected!</string>

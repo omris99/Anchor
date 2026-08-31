@@ -9,6 +9,7 @@ import com.anchor.watch.services.EmergencySyncWorker
 import com.anchor.watch.services.FallDetectionService
 import com.anchor.watch.services.MedicationScheduler
 import com.anchor.watch.services.MedicationSyncWorker
+import com.anchor.watch.services.WaterScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,6 +24,7 @@ class SosReceiver : BroadcastReceiver() {
         CheckInSchedulerService(context).rescheduleIfConfigured()
         FallDetectionService.start(context)
         rearmMedications(context)
+        rearmWater(context)
     }
 
     // Pull reminders from the backend before scheduling so a dashboard-created reminder
@@ -32,6 +34,17 @@ class SosReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 MedicationScheduler.syncAndReschedule(context)
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
+    private fun rearmWater(context: Context) {
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                WaterScheduler.syncAndReschedule(context)
             } finally {
                 pending.finish()
             }

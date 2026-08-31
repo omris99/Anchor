@@ -45,6 +45,15 @@
     <string name="cd_medication_confirmed">התרופה אושרה כנלקחה</string>
     <string name="medication_notification_title">תזכורת תרופה</string>
     <string name="medication_notification_text">ספירה לאחור פעילה</string>
+
+    <string name="water_taken">שתיתי</string>
+    <string name="water_subtitle">הגיע הזמן לשתות מים</string>
+    <string name="water_confirmed">✓ שתיתי</string>
+    <string name="cd_water_taken">אישור שתיית מים</string>
+    <string name="cd_water_confirmed">תזכורת השתייה אושרה</string>
+    <string name="water_notification_title">תזכורת שתייה</string>
+    <string name="water_notification_text">ספירה לאחור פעילה</string>
+
     <string name="time_left_template">נשאר: %1$d:%2$02d</string>
 
     <string name="fall_detected_title">זוהתה נפילה!</string>

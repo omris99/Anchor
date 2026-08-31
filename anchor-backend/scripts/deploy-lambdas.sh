@@ -85,6 +85,13 @@ deploy_lambda "medication-reminders-missed"       "medication-reminders-missed"
 deploy_lambda "medication-reminders-schedule-ack" "medication-schedule-ack"
 deploy_lambda "medication-reminders-dashboard"    "medication-reminders-dashboard"
 
+# Water reminders
+deploy_lambda "water-reminders-get"          "water-reminders-get"
+deploy_lambda "water-reminders-confirm"      "water-reminders-confirm"
+deploy_lambda "water-reminders-missed"       "water-reminders-missed"
+deploy_lambda "water-reminders-schedule-ack" "water-reminders-schedule-ack"
+deploy_lambda "water-reminders-dashboard"    "water-reminders-dashboard"
+
 # Emergency
 deploy_lambda "emergency"             "emergency"
 deploy_lambda "emergency-acknowledge" "emergency-acknowledge"

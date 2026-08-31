@@ -7,10 +7,13 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.anchor.watch.data.CheckInApi
 import com.anchor.watch.data.CheckInContext
 import com.anchor.watch.data.MedicationApi
+import com.anchor.watch.data.WaterApi
 import com.anchor.watch.data.local.CheckInEntity
 import com.anchor.watch.data.local.EmergencyEventEntity
 import com.anchor.watch.data.local.MedicationEntity
 import com.anchor.watch.data.local.MedicationStatus
+import com.anchor.watch.data.local.WaterEntity
+import com.anchor.watch.data.local.WaterStatus
 import com.anchor.watch.services.EmergencyApi
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
@@ -101,6 +104,10 @@ object PartnerApi {
     fun medication(context: Context): MedicationApi =
         PartnerMedicationApi(retrofit(context).create(PartnerMedicationService::class.java))
 
+    /** Adapter implementing SOURCE's [WaterApi]. */
+    fun water(context: Context): WaterApi =
+        PartnerWaterApi(retrofit(context).create(PartnerWaterService::class.java))
+
     /** Adapter implementing SOURCE's [CheckInApi]. */
     fun checkIn(context: Context): CheckInApi =
         PartnerCheckInApi(retrofit(context).create(PartnerCheckInService::class.java))
@@ -154,6 +161,26 @@ internal interface PartnerMedicationService {
 
     @POST("medication-reminders/{id}/schedule-ack")
     suspend fun scheduleAck(@Path("id") medicationId: String): retrofit2.Response<Unit>
+}
+
+internal interface PartnerWaterService {
+    @GET("water-reminders/{userId}")
+    suspend fun today(@Path("userId") userId: String): retrofit2.Response<WaterListDto>
+
+    @POST("water-reminders/{id}/confirm")
+    suspend fun confirm(
+        @Path("id") waterReminderId: String,
+        @Body body: WaterStatusDto,
+    ): retrofit2.Response<Unit>
+
+    @POST("water-reminders/{id}/missed")
+    suspend fun missed(
+        @Path("id") waterReminderId: String,
+        @Body body: WaterStatusDto,
+    ): retrofit2.Response<Unit>
+
+    @POST("water-reminders/{id}/schedule-ack")
+    suspend fun scheduleAck(@Path("id") waterReminderId: String): retrofit2.Response<Unit>
 }
 
 internal interface PartnerCheckInService {
@@ -237,6 +264,26 @@ internal data class MedicationDto(
 
 @JsonClass(generateAdapter = true)
 internal data class MedicationStatusDto(
+    val timestamp: Long,
+)
+
+@JsonClass(generateAdapter = true)
+internal data class WaterListDto(
+    val water_reminders: List<WaterDto>,
+)
+
+@JsonClass(generateAdapter = true)
+internal data class WaterDto(
+    val id: String,
+    val scheduled_time: String,
+    val days_of_week: List<Int>? = null,
+    val status: String? = null,
+    val user_id: String? = null,
+    val status_timestamp: Long? = null,
+)
+
+@JsonClass(generateAdapter = true)
+internal data class WaterStatusDto(
     val timestamp: Long,
 )
 
@@ -333,6 +380,51 @@ internal class PartnerMedicationApi(
         name = medication_name,
         scheduledTime = scheduled_time,
         status = status ?: MedicationStatus.PENDING,
+        userId = user_id ?: "me",
+        isSynced = true,
+        statusTimestamp = status_timestamp,
+        daysOfWeek = days_of_week ?: emptyList(),
+    )
+}
+
+internal class PartnerWaterApi(
+    private val service: PartnerWaterService,
+) : WaterApi {
+
+    override suspend fun today(userId: String): List<WaterEntity>? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val response = service.today(userId.ifBlank { "me" })
+                if (!response.isSuccessful) return@runCatching null
+                response.body()?.water_reminders?.map { it.toEntity() }
+            }.getOrNull()
+        }
+
+    override suspend fun confirm(waterReminderId: String, timestamp: Long): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                service.confirm(waterReminderId, WaterStatusDto(timestamp)).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    override suspend fun miss(waterReminderId: String, timestamp: Long): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                service.missed(waterReminderId, WaterStatusDto(timestamp)).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    override suspend fun scheduleAck(waterReminderId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                service.scheduleAck(waterReminderId).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    private fun WaterDto.toEntity(): WaterEntity = WaterEntity(
+        id = id,
+        scheduledTime = scheduled_time,
+        status = status ?: WaterStatus.PENDING,
         userId = user_id ?: "me",
         isSynced = true,
         statusTimestamp = status_timestamp,

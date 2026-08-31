@@ -48,6 +48,7 @@ class WatchFcmService : FirebaseMessagingService() {
     /**
      * Called when a silent data-only FCM message arrives.
      * "medication_sync"  → pull latest reminders and reschedule alarms immediately.
+     * "water_sync"       → pull latest water reminder settings and reschedule alarms immediately.
      * "request_checkin"  → open CheckInActivity so the elder can respond.
      */
     override fun onMessageReceived(message: RemoteMessage) {
@@ -58,6 +59,9 @@ class WatchFcmService : FirebaseMessagingService() {
             "medication_delete" -> {
                 val medId = message.data["med_id"] ?: return
                 MedicationAlarmService.cancel(applicationContext, medId)
+            }
+            "water_sync" -> scope.launch {
+                runCatching { WaterScheduler.syncAndReschedule(applicationContext) }
             }
             "request_checkin" -> {
                 val pm = applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
