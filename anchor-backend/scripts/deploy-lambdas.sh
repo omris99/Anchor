@@ -108,8 +108,9 @@ deploy_lambda "user-profile" "user-profile"
 deploy_lambda "user-status" "user-status"
 
 # Health metrics (watch → dashboard)
-deploy_lambda "health-metrics-post" "health-metrics-post"
-deploy_lambda "health-metrics-get"  "health-metrics-get"
+deploy_lambda "health-metrics-post"    "health-metrics-post"
+deploy_lambda "health-metrics-get"     "health-metrics-get"
+deploy_lambda "health-metrics-history" "health-metrics-history"
 
 echo ""
 echo "[3/3] Done!"

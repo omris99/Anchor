@@ -96,8 +96,9 @@ add_route "user-profile" "GET" "/users/{id}/profile"
 add_route "user-status" "GET" "/users/{id}/status"
 
 # --- Health metrics ---
-add_route "health-metrics-post" "POST" "/health-metrics"
-add_route "health-metrics-get"  "GET"  "/users/{id}/health-metrics/latest"
+add_route "health-metrics-post"    "POST" "/health-metrics"
+add_route "health-metrics-get"     "GET"  "/users/{id}/health-metrics/latest"
+add_route "health-metrics-history" "GET"  "/users/{id}/health-metrics/history"
 
 echo ""
 echo "All routes added. API is live at:"
