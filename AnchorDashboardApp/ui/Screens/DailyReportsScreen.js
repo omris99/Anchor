@@ -14,53 +14,9 @@ import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 import { openMapLocation } from '../../logic/utils/mapUtils';
 
-// Shown when no real data is available yet (network error, not yet paired, etc.)
-const MOCK_REPORTS = [
-    {
-        id: 'r1',
-        dateLabel: 'היום',
-        wakeUpTime: '07:14',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-            { name: 'ויטמין D', time: '08:00' },
-        ],
-        medicationsPending: [{ name: 'מטפורמין', time: '13:00' }],
-        generalFeelingEmoji: '🙂',
-        batteryPercent: 68,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-        id: 'r2',
-        dateLabel: 'אתמול',
-        wakeUpTime: '07:52',
-        medicationsTaken: [
-            { name: 'אקמול', time: '08:00' },
-            { name: 'ויטמין D', time: '08:00' },
-            { name: 'מטפורמין', time: '13:00' },
-        ],
-        medicationsPending: [],
-        generalFeelingEmoji: '😐',
-        batteryPercent: 82,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-        id: 'r3',
-        dateLabel: '3/5/2026',
-        wakeUpTime: '06:45',
-        medicationsTaken: [{ name: 'אקמול', time: '08:00' }],
-        medicationsPending: [
-            { name: 'ויטמין D', time: '08:00' },
-            { name: 'מטפורמין', time: '13:00' },
-        ],
-        generalFeelingEmoji: '😔',
-        batteryPercent: 45,
-        location: { lat: 32.0853, lng: 34.7818 },
-    },
-];
-
 const STATUS_EMOJI = { happy: '😊', neutral: '😐', sad: '😔', no_response: '—' };
 
-// Maps a server check-in to the same shape as MOCK_REPORTS so ReportCard stays unchanged.
+// Maps a server check-in to the report shape ReportCard expects.
 function checkinToReport(checkin, index) {
     const date = new Date(checkin.timestamp);
     const meds = checkin.medications ?? [];
@@ -146,7 +102,8 @@ function ReportCard({ report, isFirst }) {
 
 export default function DailyReportsScreen({ navigation }) {
     const { user } = useContext(UserContext);
-    const [reports, setReports] = useState(MOCK_REPORTS);
+    const [reports, setReports] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [requestState, setRequestState] = useState('idle'); // 'idle' | 'loading' | 'sent' | 'error'
     const [isRefreshing, setIsRefreshing] = useState(false);
     const resetTimer = useRef(null);
@@ -154,14 +111,14 @@ export default function DailyReportsScreen({ navigation }) {
     function fetchReports() {
         return apiRequest(`/users/${user.userId}/checkins`)
             .then(data => {
-                const real = (data.checkins ?? []).map(checkinToReport);
-                setReports([...real, ...MOCK_REPORTS]);
+                const checkinReports = (data.checkins ?? []).map(checkinToReport);
+                setReports(checkinReports);
             })
-            .catch(() => {}); // keep mock data on error
+            .catch(() => {}); // keep whatever was already loaded on error
     }
 
     useEffect(() => {
-        fetchReports();
+        fetchReports().finally(() => setIsLoading(false));
         return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };
     }, []);
 
@@ -244,13 +201,23 @@ export default function DailyReportsScreen({ navigation }) {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ReportCard report={todayReport} isFirst />
+                    {isLoading ? (
+                        <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
+                    ) : reports.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>אין דיווחים להצגה עדיין</Text>
+                        </View>
+                    ) : (
+                        <>
+                            <ReportCard report={todayReport} isFirst />
 
-                    <Text style={styles.historyTitle}>היסטוריית דיווחים</Text>
+                            <Text style={styles.historyTitle}>היסטוריית דיווחים</Text>
 
-                    {historyReports.map(report => (
-                        <ReportCard key={report.id} report={report} isFirst={false} />
-                    ))}
+                            {historyReports.map(report => (
+                                <ReportCard key={report.id} report={report} isFirst={false} />
+                            ))}
+                        </>
+                    )}
                 </ScrollView>
             </SafeAreaView>
         </ImageBackground>
@@ -315,6 +282,16 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 30,
+    },
+    emptyCard: {
+        backgroundColor: 'rgba(255,255,255,0.88)',
+        borderRadius: 16,
+        padding: 24,
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#888',
     },
     card: {
         backgroundColor: 'rgba(255,255,255,0.88)',

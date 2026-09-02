@@ -14,42 +14,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 
-const MOCK_EMERGENCY_EVENTS = [
-    {
-        id: '1',
-        timestamp: '4/5/2026, 14:22',
-        type: 'זוהתה נפילה!',
-        location: null,
-        status: 'acknowledged',
-        isEmergency: true,
-    },
-    {
-        id: '2',
-        timestamp: '1/5/2026, 09:05',
-        type: 'לחיצה על כפתור מצוקה',
-        location: null,
-        status: 'acknowledged',
-        isEmergency: true,
-        
-    },
-    {
-        id: '3',
-        timestamp: '28/4/2026, 20:47',
-        type: 'זוהתה נפילה!',
-        location: null,
-        status: 'acknowledged',
-        isEmergency: true,
-    },
-    {
-        id: '4',
-        timestamp: '20/4/2026, 11:30',
-        type: 'דופק חלש מאוד',
-        location: null,
-        status: 'acknowledged',
-        isEmergency: true,
-    },
-];
-
 function formatAlertForScreen(alert) {
     const location = (alert.location?.lat != null && alert.location?.lng != null)
         ? { lat: alert.location.lat, lng: alert.location.lng }
@@ -66,7 +30,7 @@ function formatAlertForScreen(alert) {
 
 export default function EmergencyHistoryScreen({ navigation }) {
     const { user } = useContext(UserContext);
-    const [realAlerts, setRealAlerts] = useState([]);
+    const [alerts, setAlerts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useFocusEffect(
@@ -74,16 +38,13 @@ export default function EmergencyHistoryScreen({ navigation }) {
             if (!user?.userId) { setIsLoading(false); return; }
             setIsLoading(true);
             apiRequest(`/users/${user.userId}/emergency-alerts`)
-                .then(data => setRealAlerts(data.alerts || []))
+                .then(data => setAlerts(data.alerts || []))
                 .catch(() => {})
                 .finally(() => setIsLoading(false));
         }, [user?.userId])
     );
 
-    const allEvents = [
-        ...realAlerts.map(a => ({ ...formatAlertForScreen(a), _key: `real-${a.id}` })),
-        ...MOCK_EMERGENCY_EVENTS.map(e => ({ ...e, _key: `mock-${e.id}` })),
-    ];
+    const allEvents = alerts.map(a => ({ ...formatAlertForScreen(a), _key: a.id }));
 
     return (
         <ImageBackground
@@ -110,6 +71,10 @@ export default function EmergencyHistoryScreen({ navigation }) {
                 >
                     {isLoading ? (
                         <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
+                    ) : allEvents.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>אין אירועי חירום להצגה</Text>
+                        </View>
                     ) : (
                         allEvents.map(event => (
                             <TouchableOpacity

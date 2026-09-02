@@ -16,15 +16,6 @@ import { openMapLocation } from '../../logic/utils/mapUtils';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 import { UserContext } from '../../logic/contexts/UserContext';
 
-const MOCK_EVENT = {
-    id: '1',
-    timestamp: '4/5/2026, 14:22',
-    type: 'זוהתה נפילה!',
-    location: 'רחוב הרצל 12, תל אביב',
-    status: 'pending',
-    isEmergency: true,
-};
-
 function useReverseGeocode(location) {
     const [address, setAddress] = useState(null);
 
@@ -53,10 +44,10 @@ function useReverseGeocode(location) {
 
 export default function EmergencyEventScreen({ route, navigation }) {
     const { user } = useContext(UserContext);
-    const event = route?.params?.event ?? MOCK_EVENT;
-    const [acknowledged, setAcknowledged] = useState(event.status === 'acknowledged');
+    const event = route?.params?.event;
+    const [acknowledged, setAcknowledged] = useState(event?.status === 'acknowledged');
     const [isAcknowledging, setIsAcknowledging] = useState(false);
-    const resolvedAddress = useReverseGeocode(event.location);
+    const resolvedAddress = useReverseGeocode(event?.location);
 
     async function handleAcknowledge() {
         setIsAcknowledging(true);
@@ -67,11 +58,37 @@ export default function EmergencyEventScreen({ route, navigation }) {
             });
             setAcknowledged(true);
         } catch {
-            // alert not found (e.g. mock event) — acknowledge locally anyway
+            // alert not found on server — acknowledge locally anyway
             setAcknowledged(true);
         } finally {
             setIsAcknowledging(false);
         }
+    }
+
+    if (!event) {
+        return (
+            <ImageBackground
+                source={require('../assets/wave-background.png')}
+                style={styles.background}
+            >
+                <SafeAreaView style={styles.container} edges={['top']}>
+                    <View style={styles.header}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+                            <Text style={styles.backArrow}>←</Text>
+                        </TouchableOpacity>
+                        <Image
+                            source={require('../assets/anchor-logo-wide.png')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+                        <View style={styles.headerSpacer} />
+                    </View>
+                    <View style={styles.card}>
+                        <Text style={styles.locationText}>לא נמצאו פרטי אירוע</Text>
+                    </View>
+                </SafeAreaView>
+            </ImageBackground>
+        );
     }
 
     return (
