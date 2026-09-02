@@ -59,7 +59,7 @@
 
 ---
 
-### 1.4 קישור שעון אחר — אישור התנתקות + חזרה למסך ברקוד
+### 1.4 קישור שעון אחר — אישור התנתקות + חזרה למסך ברקוד ✅
 
 **הבעיה:** לחיצה על "קשר שעון אחר" (`LinkManagementScreen.js:97`) עוברת ישירות למסך `watch-pairing` בלי שום אישור, ואין שום מנגנון backend/watch שמנתק בפועל את השעון הקודם. השעון בוחר בין מסך ראשי למסך קישור **פעם אחת בלבד, ב-cold start**, לפי מפתח מקומי (`MainActivity.kt:149-150` — `hasKey = WatchKeyStore.get(...).apiKey() != null`). כלומר גם אם ננתק את השעון בצד השרת, השעון עצמו לא ידע להציג שוב את הברקוד עד שהאפליקציה תופעל מחדש.
 
@@ -75,6 +75,12 @@
 - Watch: `WatchFcmService.kt`, `WatchKeyStore.kt`, `MainActivity.kt`
 
 **קושי:** בינוני-גבוה — נוגע בשלושת הרכיבים, והחלק הלא-טריוויאלי הוא שהשעון היום בודק מצב קישור רק ב-cold start ולא באופן חי.
+
+**סטטוס:** בוצע ונפרס, אחרי תיקון על בסיס בדיקה אמיתית:
+1. Dashboard: `LinkManagementScreen.js` מציג `Alert` אישור לפני ניווט (רק כש-`user?.watchId` קיים), קורא ל-endpoint החדש, מנקה `watchId`/`watchName` מה-context, ורק אז מנווט.
+2. Backend: `anchor-backend/lambdas/watch-unpair/index.js` חדש, `POST /users/{id}/watch/unpair` — נפרס ונבדק end-to-end מול משתמש אמיתי.
+3. Watch: `WatchFcmService` מטפל ב-`watch_unpair` — `WatchKeyStore.clear()` ואז מפעיל מחדש את `MainActivity` (`onCreate()` בודק `hasKey` מחדש ונוחת על `Screen.Pairing` לבד, בלי live-state נפרד).
+4. **באג שנתפס ותוקן בבדיקה אמיתית**: הטיפול המקורי ב-`watch_unpair` השתמש ב-3 שכבות טריגר חופפות (כמו `request_checkin`) — אבל `MainActivity` (בניגוד ל-4 מסכי ה-lockscreen שהם `singleInstance`) היא launcher עם launchMode ברירת מחדל, ומכיוון ש-`FallDetectionService` שומר את הprocess חי כמעט תמיד, שתי השכבות (direct `startActivity()` + `AlarmManager.setAlarmClock()`) הצליחו במקביל והפעילו את `MainActivity` פעמיים ברצף — כל הפעלה יצרה רשומת `type:"pairing"` יתומה חדשה ב-`Anchor_Users` (כי `WatchPairingScreen`'s `LaunchedEffect(Unit)` קורא `initPairing()` על כל רכיבה). **תוקן**: טריגר יחיד בלבד (`setAlarmClock`). פרטים מלאים ב-CLAUDE.md.
 
 ---
 
@@ -155,7 +161,7 @@ const val GRACE_PERIOD_MS: Long = 9_000L  →  10_000L
 | 1.1 | Family Linking — backend + UI wiring | בינוני-גבוה | **חוסם דמו** |
 | 1.2 | PreferencesScreen — שמירה אמיתית | נמוך-בינוני | **חוסם דמו** |
 | 1.3 | תזכורות שתייה/ארוחות קצה-לקצה | גבוה | חוסם דמו (אם יש זמן) |
-| 1.4 | קישור שעון אחר — אישור + חזרה לברקוד | בינוני-גבוה | חוסם דמו |
+| 1.4 | קישור שעון אחר — אישור + חזרה לברקוד | בינוני-גבוה | ✅ בוצע |
 | 1.5 | OpenAI לנקודה הצבעונית (user-status) | בינוני | ✅ בוצע |
 | 2.1 | Daily Report + OpenAI | גבוה | בינונית |
 | 2.2 | Emergency retry עד אישור | בינוני | בינונית |

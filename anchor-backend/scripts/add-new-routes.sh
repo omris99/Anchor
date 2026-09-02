@@ -54,6 +54,7 @@ add_route "watch-init-pairing" "POST" "/watch/init-pairing"
 add_route "watch-pair"         "POST" "/users/{id}/watch/pair"
 add_route "watch-credentials"  "GET"  "/watch/credentials"
 add_route "watch-fcm-token"    "POST" "/watch/fcm-token"
+add_route "watch-unpair"       "POST" "/users/{id}/watch/unpair"
 
 # --- Check-ins ---
 add_route "checkins"         "POST" "/checkins"

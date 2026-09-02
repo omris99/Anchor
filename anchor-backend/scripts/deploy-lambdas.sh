@@ -72,6 +72,7 @@ deploy_lambda "watch-credentials"  "watch-credentials"
 
 # Watch FCM token registration
 deploy_lambda "watch-fcm-token" "watch-fcm-token"
+deploy_lambda "watch-unpair"    "watch-unpair"
 
 # Check-ins
 deploy_lambda "checkins"         "checkins"

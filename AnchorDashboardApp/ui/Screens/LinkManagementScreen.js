@@ -41,6 +41,33 @@ function ElderlyView({ navigation }) {
             .catch(() => {});
     }, []);
 
+    const linkAnotherWatch = () => {
+        if (!user?.watchId) {
+            navigation.navigate('watch-pairing');
+            return;
+        }
+        Alert.alert(
+            'קישור שעון אחר',
+            'האם אתה בטוח שברצונך להתנתק מהשעון הנוכחי ולקשר שעון חדש?',
+            [
+                { text: 'ביטול', style: 'cancel' },
+                {
+                    text: 'התנתק וקשר שעון',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await apiRequest(`/users/${user.userId}/watch/unpair`, { method: 'POST' });
+                            setUser(prev => ({ ...prev, watchId: null, watchName: null }));
+                            navigation.navigate('watch-pairing');
+                        } catch (err) {
+                            Alert.alert('שגיאה', err.message || 'לא ניתן להתנתק מהשעון. נסה שוב.');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const approveRequest = (requestId) => {
         // TODO: POST /users/{userId}/family/approve — אישור בקשת קישור
         setLinkRequests(prev => prev.filter(request => request.id !== requestId));
@@ -94,7 +121,7 @@ function ElderlyView({ navigation }) {
                 <ClassicButton
                     buttonStyle={styles.watchButton}
                     textStyle={styles.watchButtonText}
-                    onPress={() => navigation.navigate('watch-pairing')}
+                    onPress={linkAnotherWatch}
                 >
                     {user?.watchId ? 'קשר שעון אחר' : 'קשר שעון'}
                 </ClassicButton>
