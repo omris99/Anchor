@@ -6,7 +6,7 @@ PREFIX="Anchor_"
 
 echo "Deleting existing Anchor tables..."
 
-for TABLE in Users FamilyMembers BiometricData DailyCheckIns MedicationReminders Alerts; do
+for TABLE in Users FamilyMembers BiometricData DailyCheckIns MedicationReminders WaterReminders Alerts; do
   aws dynamodb delete-table --table-name $TABLE \
     --profile $PROFILE --region $REGION --output text > /dev/null 2>&1 && echo "Deleted: $TABLE"
 done
@@ -73,6 +73,19 @@ aws dynamodb create-table \
 # Anchor_MedicationReminders
 aws dynamodb create-table \
   --table-name ${PREFIX}MedicationReminders \
+  --attribute-definitions \
+    AttributeName=user_id,AttributeType=S \
+    AttributeName=id,AttributeType=S \
+  --key-schema \
+    AttributeName=user_id,KeyType=HASH \
+    AttributeName=id,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --profile $PROFILE --region $REGION \
+  --query 'TableDescription.TableName' --output text
+
+# Anchor_WaterReminders
+aws dynamodb create-table \
+  --table-name ${PREFIX}WaterReminders \
   --attribute-definitions \
     AttributeName=user_id,AttributeType=S \
     AttributeName=id,AttributeType=S \

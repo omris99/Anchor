@@ -82,6 +82,15 @@
             android:turnScreenOn="true" />
 
         <activity
+            android:name="com.anchor.watch.WaterActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Anchor"
+            android:turnScreenOn="true" />
+
+        <activity
             android:name="com.anchor.watch.FallAlertActivity"
             android:exported="false"
             android:launchMode="singleInstance"
@@ -103,6 +112,15 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="medication_reminder" />
+        </service>
+
+        <service
+            android:name="com.anchor.watch.services.WaterAlarmService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="water_reminder" />
         </service>
 
         <service
@@ -137,6 +155,10 @@
 
         <receiver
             android:name="com.anchor.watch.receivers.MedicationAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name="com.anchor.watch.receivers.WaterAlarmReceiver"
             android:exported="false" />
 
         <!-- FCM: receives silent push to trigger immediate medication sync -->

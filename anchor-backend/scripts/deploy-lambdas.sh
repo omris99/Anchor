@@ -72,6 +72,7 @@ deploy_lambda "watch-credentials"  "watch-credentials"
 
 # Watch FCM token registration
 deploy_lambda "watch-fcm-token" "watch-fcm-token"
+deploy_lambda "watch-unpair"    "watch-unpair"
 
 # Check-ins
 deploy_lambda "checkins"         "checkins"
@@ -84,6 +85,13 @@ deploy_lambda "medication-reminders-confirm"      "medication-reminders-confirm"
 deploy_lambda "medication-reminders-missed"       "medication-reminders-missed"
 deploy_lambda "medication-reminders-schedule-ack" "medication-schedule-ack"
 deploy_lambda "medication-reminders-dashboard"    "medication-reminders-dashboard"
+
+# Water reminders
+deploy_lambda "water-reminders-get"          "water-reminders-get"
+deploy_lambda "water-reminders-confirm"      "water-reminders-confirm"
+deploy_lambda "water-reminders-missed"       "water-reminders-missed"
+deploy_lambda "water-reminders-schedule-ack" "water-reminders-schedule-ack"
+deploy_lambda "water-reminders-dashboard"    "water-reminders-dashboard"
 
 # Emergency
 deploy_lambda "emergency"             "emergency"
@@ -100,8 +108,9 @@ deploy_lambda "user-profile" "user-profile"
 deploy_lambda "user-status" "user-status"
 
 # Health metrics (watch → dashboard)
-deploy_lambda "health-metrics-post" "health-metrics-post"
-deploy_lambda "health-metrics-get"  "health-metrics-get"
+deploy_lambda "health-metrics-post"    "health-metrics-post"
+deploy_lambda "health-metrics-get"     "health-metrics-get"
+deploy_lambda "health-metrics-history" "health-metrics-history"
 
 echo ""
 echo "[3/3] Done!"

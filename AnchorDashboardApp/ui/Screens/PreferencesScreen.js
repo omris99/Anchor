@@ -20,13 +20,6 @@ import { logoutUser } from '../../logic/services/authentication/LoginService';
 import TextInputField from '../components/TextInputField';
 import ClassicButton from '../components/ClassicButton';
 
-const WATER_FREQUENCY_OPTIONS = [
-    { label: 'אף פעם', value: 'never' },
-    { label: 'כל שעה', value: '1h' },
-    { label: 'כל שעתיים', value: '2h' },
-    { label: 'כל 3 שעות', value: '3h' },
-];
-
 function formatTime(date) {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -55,10 +48,6 @@ export default function PreferencesScreen({ navigation }) {
     const [morningTrackingEnabled, setMorningTrackingEnabled] = useState(true);
     const [healthMonitoringEnabled, setHealthMonitoringEnabled] = useState(true);
 
-    const [waterEnabled, setWaterEnabled] = useState(false);
-    const [waterFrequency, setWaterFrequency] = useState('never');
-    const [isFrequencyModalVisible, setIsFrequencyModalVisible] = useState(false);
-
     const [mealsEnabled, setMealsEnabled] = useState(false);
     const [mealName, setMealName] = useState('');
     const [mealTime, setMealTime] = useState(() => {
@@ -69,9 +58,6 @@ export default function PreferencesScreen({ navigation }) {
     const [pendingMealTime, setPendingMealTime] = useState(mealTime);
     const [isMealPickerVisible, setIsMealPickerVisible] = useState(false);
     const [mealReminders, setMealReminders] = useState([]);
-
-    const selectedFrequencyLabel =
-        WATER_FREQUENCY_OPTIONS.find(opt => opt.value === waterFrequency)?.label ?? 'אף פעם';
 
     const addMealReminder = () => {
         if (!mealName.trim()) {
@@ -147,28 +133,6 @@ export default function PreferencesScreen({ navigation }) {
                         />
                     </View>
 
-                    {/* Water reminders */}
-                    <View style={styles.section}>
-                        <ToggleRow
-                            label="הפעל תזכורות לשתיית מים"
-                            value={waterEnabled}
-                            onValueChange={setWaterEnabled}
-                        />
-                        {waterEnabled && (
-                            <View style={styles.subSection}>
-                                <Text style={styles.subLabel}>תדירות:</Text>
-                                <TouchableOpacity
-                                    style={styles.frequencyPicker}
-                                    onPress={() => setIsFrequencyModalVisible(true)}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text style={styles.frequencyText}>{selectedFrequencyLabel}</Text>
-                                    <Text style={styles.frequencyChevron}>▾</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </View>
-
                     {/* Meal reminders */}
                     <View style={styles.section}>
                         <ToggleRow
@@ -240,44 +204,6 @@ export default function PreferencesScreen({ navigation }) {
                     </ClassicButton>
                 </ScrollView>
             </SafeAreaView>
-
-            {/* Water frequency modal */}
-            <Modal
-                visible={isFrequencyModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setIsFrequencyModalVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setIsFrequencyModalVisible(false)}
-                >
-                    <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>תדירות תזכורות מים</Text>
-                        {WATER_FREQUENCY_OPTIONS.map(option => (
-                            <TouchableOpacity
-                                key={option.value}
-                                style={[
-                                    styles.frequencyOption,
-                                    waterFrequency === option.value && styles.frequencyOptionSelected,
-                                ]}
-                                onPress={() => {
-                                    setWaterFrequency(option.value);
-                                    setIsFrequencyModalVisible(false);
-                                }}
-                            >
-                                <Text style={[
-                                    styles.frequencyOptionText,
-                                    waterFrequency === option.value && styles.frequencyOptionTextSelected,
-                                ]}>
-                                    {option.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
 
             {/* Meal time picker modal */}
             <Modal
@@ -418,26 +344,6 @@ const styles = StyleSheet.create({
         marginBottom: 6,
         marginTop: 8,
     },
-    frequencyPicker: {
-        flexDirection: 'row-reverse',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderWidth: 1,
-        borderColor: '#aaa',
-        borderRadius: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        backgroundColor: '#fff',
-    },
-    frequencyText: {
-        fontSize: 16,
-        color: '#48AEBE',
-        fontWeight: '600',
-    },
-    frequencyChevron: {
-        fontSize: 16,
-        color: '#48AEBE',
-    },
     timePicker: {
         borderWidth: 1,
         borderColor: '#aaa',
@@ -524,26 +430,6 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
         marginBottom: 16,
-    },
-    frequencyOption: {
-        paddingVertical: 14,
-        paddingHorizontal: 12,
-        borderRadius: 10,
-        marginBottom: 6,
-        backgroundColor: '#f5f5f5',
-        alignItems: 'flex-end',
-    },
-    frequencyOptionSelected: {
-        backgroundColor: '#48AEBE',
-    },
-    frequencyOptionText: {
-        fontSize: 16,
-        color: '#333',
-        fontWeight: '500',
-    },
-    frequencyOptionTextSelected: {
-        color: '#fff',
-        fontWeight: '700',
     },
     picker: {
         width: '100%',

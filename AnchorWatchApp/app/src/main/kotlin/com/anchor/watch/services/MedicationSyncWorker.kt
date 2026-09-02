@@ -11,28 +11,42 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.anchor.watch.data.MedicationApi
+import com.anchor.watch.data.WaterApi
 import com.anchor.watch.data.local.MedicationLocalStore
 import com.anchor.watch.data.local.MedicationStatus
 import com.anchor.watch.data.local.MedicationStore
+import com.anchor.watch.data.local.WaterLocalStore
+import com.anchor.watch.data.local.WaterStatus
+import com.anchor.watch.data.local.WaterStore
 import com.anchor.watch.network.PartnerApi
 import java.util.concurrent.TimeUnit
 
+/**
+ * Handles both medications and water reminders in a single periodic tick — they're the
+ * same pull-drain-reschedule shape, so one WorkManager job covers both instead of running
+ * two identical periodic jobs against the battery.
+ */
 class MedicationSyncWorker(
     appContext: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val ok = drain(
+        val medOk = drain(
             store = MedicationLocalStore(applicationContext),
             // PartnerApiAdapter: was UnreachableMedicationApi (SOURCE default stub).
             api = PartnerApi.medication(applicationContext),
+        )
+        val waterOk = drainWater(
+            store = WaterLocalStore(applicationContext),
+            api = PartnerApi.water(applicationContext),
         )
         // Pull newly created/edited reminders down and (re)arm their alarms so dashboard
         // changes propagate without waiting for a reboot or app open. Best-effort: a
         // failure here must not flip a successful status drain into a retry storm.
         runCatching { MedicationScheduler.syncAndReschedule(applicationContext) }
-        return if (ok) Result.success() else Result.retry()
+        runCatching { WaterScheduler.syncAndReschedule(applicationContext) }
+        return if (medOk && waterOk) Result.success() else Result.retry()
     }
 
     companion object {
@@ -54,6 +68,24 @@ class MedicationSyncWorker(
                     }
                 }.getOrDefault(false)
                 if (ok) store.markSynced(med.id) else allOk = false
+            }
+            return allOk
+        }
+
+        suspend fun drainWater(store: WaterStore, api: WaterApi): Boolean {
+            val pending = store.unsynced()
+            if (pending.isEmpty()) return true
+            var allOk = true
+            for (water in pending) {
+                val ts = water.statusTimestamp ?: System.currentTimeMillis()
+                val ok = runCatching {
+                    when (water.status) {
+                        WaterStatus.TAKEN -> api.confirm(water.id, ts)
+                        WaterStatus.MISSED -> api.miss(water.id, ts)
+                        else -> true
+                    }
+                }.getOrDefault(false)
+                if (ok) store.markSynced(water.id) else allOk = false
             }
             return allOk
         }

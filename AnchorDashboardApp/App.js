@@ -13,7 +13,9 @@ import WelcomeScreen from './ui/Screens/WelcomeScreen';
 import RegisterScreen from './ui/Screens/RegisterScreen';
 import ConfirmSignUpScreen from "./ui/Screens/ConfirmSignUpScreen";
 import HomeScreen from "./ui/Screens/HomeScreen";
+import RemindersHubScreen from "./ui/Screens/RemindersHubScreen";
 import MedicationRemindersScreen from "./ui/Screens/MedicationRemindersScreen";
+import WaterReminderScreen from "./ui/Screens/WaterReminderScreen";
 import HealthDataScreen from "./ui/Screens/HealthDataScreen";
 import DailyReportsScreen from "./ui/Screens/DailyReportsScreen";
 import EmergencyHistoryScreen from "./ui/Screens/EmergencyHistoryScreen";
@@ -171,8 +173,18 @@ export default function App() {
                             options={{ headerShown: false }}
                         />
                         <Stack.Screen
+                            name="reminders-hub"
+                            component={RemindersHubScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
                             name="medication-reminders"
                             component={MedicationRemindersScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name="water-reminders"
+                            component={WaterReminderScreen}
                             options={{ headerShown: false }}
                         />
                         <Stack.Screen
