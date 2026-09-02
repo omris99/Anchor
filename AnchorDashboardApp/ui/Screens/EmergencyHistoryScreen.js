@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -10,7 +10,6 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 
@@ -33,16 +32,14 @@ export default function EmergencyHistoryScreen({ navigation }) {
     const [alerts, setAlerts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!user?.userId) { setIsLoading(false); return; }
-            setIsLoading(true);
-            apiRequest(`/users/${user.userId}/emergency-alerts`)
-                .then(data => setAlerts(data.alerts || []))
-                .catch(() => {})
-                .finally(() => setIsLoading(false));
-        }, [user?.userId])
-    );
+    useEffect(() => {
+        if (!user?.userId) { setIsLoading(false); return; }
+        setIsLoading(true);
+        apiRequest(`/users/${user.userId}/emergency-alerts`)
+            .then(data => setAlerts(data.alerts || []))
+            .catch(() => {})
+            .finally(() => setIsLoading(false));
+    }, [user?.userId]);
 
     const allEvents = alerts.map(a => ({ ...formatAlertForScreen(a), _key: a.id }));
 
