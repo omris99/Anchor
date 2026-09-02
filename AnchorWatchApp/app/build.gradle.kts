@@ -27,10 +27,10 @@ android {
     }
 
     androidResources {
-        // Keep BOTH shipped locales. Hebrew strings now live in res/values-he/ (renamed
-        // from the legacy values-iw/), so the "he" filter actually matches the folder —
-        // previously "he" did not match the "iw" qualifier and Hebrew could be stripped,
-        // making a Hebrew selection fall back to English. "en" is the default values/.
+        // Keep BOTH shipped locales. Hebrew strings live in res/values-iw/ (the legacy
+        // ISO code Android still expects), so both "he" and "iw" are listed here —
+        // a device reporting "he" would otherwise not match the "iw" qualifier and
+        // Hebrew could be stripped, falling back to English. "en" is the default values/.
         localeFilters += listOf("en", "he", "iw")
     }
 
