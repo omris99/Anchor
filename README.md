@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Hub/readme/anchor-logo-wide.png" alt="Anchor" width="420">
+  <img src="Hub/readme_assets/anchor-logo-wide.png" alt="Anchor" width="420">
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@ Families with a senior living independently often lack real visibility into how 
 - Remote reminder management and QR-based watch pairing
 
 <p align="center">
-  <img src="Hub/readme/Screenshots.png" alt="Anchor screenshots" width="800">
+  <img src="Hub/readme_assets/Screenshots.png" alt="Anchor screenshots" width="800">
 </p>
 
 ## Tech stack
