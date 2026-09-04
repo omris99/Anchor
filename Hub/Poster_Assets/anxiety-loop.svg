@@ -1,0 +1,45 @@
+<svg width="1150" height="620" viewBox="0 0 1150 620" xmlns="http://www.w3.org/2000/svg" font-family="Public Sans, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4F86B0"/>
+    </marker>
+  </defs>
+
+  <!-- connecting arcs, clockwise: top -> right -> left -> top -->
+  <path d="M 605 165 A 260 260 0 0 1 700 400" fill="none" stroke="#4F86B0" stroke-width="5" marker-end="url(#arrow)"/>
+  <path d="M 650 470 A 260 260 0 0 1 470 470" fill="none" stroke="#4F86B0" stroke-width="5" marker-end="url(#arrow)"/>
+  <path d="M 420 400 A 260 260 0 0 1 515 165" fill="none" stroke="#4F86B0" stroke-width="5" marker-end="url(#arrow)"/>
+
+  <!-- circle: Lack of Visibility (top) -->
+  <circle cx="560" cy="130" r="92" fill="#FFFFFF" stroke="#4F86B0" stroke-width="4"/>
+  <text x="560" y="120" text-anchor="middle" font-size="27" font-weight="700" fill="#1C2B3A">Lack of</text>
+  <text x="560" y="153" text-anchor="middle" font-size="27" font-weight="700" fill="#1C2B3A">Visibility</text>
+
+  <!-- circle: Constant Anxiety (right) -->
+  <circle cx="765" cy="440" r="92" fill="#FFFFFF" stroke="#4F86B0" stroke-width="4"/>
+  <text x="765" y="430" text-anchor="middle" font-size="27" font-weight="700" fill="#1C2B3A">Constant</text>
+  <text x="765" y="463" text-anchor="middle" font-size="27" font-weight="700" fill="#1C2B3A">Anxiety</text>
+
+  <!-- circle: Delayed Intervention (left) -->
+  <circle cx="355" cy="440" r="92" fill="#FFFFFF" stroke="#4F86B0" stroke-width="4"/>
+  <text x="355" y="430" text-anchor="middle" font-size="27" font-weight="700" fill="#1C2B3A">Delayed</text>
+  <text x="355" y="463" text-anchor="middle" font-size="27" font-weight="700" fill="#1C2B3A">Intervention</text>
+
+  <!-- center title -->
+  <text x="560" y="300" text-anchor="middle" font-size="34" font-weight="800" fill="#4D7479">The Anxiety</text>
+  <text x="560" y="340" text-anchor="middle" font-size="34" font-weight="800" fill="#4D7479">Loop</text>
+
+  <!-- quote callouts -->
+  <text x="880" y="70" font-size="21" fill="#1C2B3A"><tspan font-style="italic">&#8220;I don&#8217;t know if Mom</tspan></text>
+  <text x="880" y="97" font-size="21" fill="#1C2B3A"><tspan font-style="italic">is okay. Is she active?</tspan></text>
+  <text x="880" y="124" font-size="21" fill="#1C2B3A"><tspan font-style="italic" font-weight="700">Sleeping normally?&#8221;</tspan></text>
+
+  <text x="880" y="500" font-size="21" fill="#1C2B3A"><tspan font-style="italic">&#8220;I call multiple times</tspan></text>
+  <text x="880" y="527" font-size="21" fill="#1C2B3A"><tspan font-style="italic">a day just to verify</tspan></text>
+  <text x="880" y="554" font-size="21" fill="#1C2B3A"><tspan font-style="italic" font-weight="700">she is safe.&#8221;</tspan></text>
+
+  <text x="20" y="500" font-size="21" fill="#1C2B3A"><tspan font-style="italic">&#8220;I only discover problems</tspan></text>
+  <text x="20" y="527" font-size="21" fill="#1C2B3A"><tspan font-style="italic">after something bad happens</tspan></text>
+  <text x="20" y="554" font-size="21" fill="#1C2B3A"><tspan font-style="italic">&#8212;like a fall or</tspan></text>
+  <text x="20" y="581" font-size="21" fill="#1C2B3A"><tspan font-style="italic" font-weight="700">hospitalization.&#8221;</tspan></text>
+</svg>
