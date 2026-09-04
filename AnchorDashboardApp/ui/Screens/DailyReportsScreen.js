@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 import { openMapLocation } from '../../logic/utils/mapUtils';
+import { getViewedUserId } from '../../logic/utils/viewedUser';
 
 const STATUS_EMOJI = { happy: '😊', neutral: '😐', sad: '😔', no_response: '—' };
 
@@ -102,6 +103,7 @@ function ReportCard({ report, isFirst }) {
 
 export default function DailyReportsScreen({ navigation }) {
     const { user } = useContext(UserContext);
+    const viewedUserId = getViewedUserId(user);
     const [reports, setReports] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [requestState, setRequestState] = useState('idle'); // 'idle' | 'loading' | 'sent' | 'error'
@@ -109,7 +111,8 @@ export default function DailyReportsScreen({ navigation }) {
     const resetTimer = useRef(null);
 
     function fetchReports() {
-        return apiRequest(`/users/${user.userId}/checkins`)
+        if (!viewedUserId) return Promise.resolve();
+        return apiRequest(`/users/${viewedUserId}/checkins`)
             .then(data => {
                 const checkinReports = (data.checkins ?? []).map(checkinToReport);
                 setReports(checkinReports);
@@ -120,7 +123,7 @@ export default function DailyReportsScreen({ navigation }) {
     useEffect(() => {
         fetchReports().finally(() => setIsLoading(false));
         return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };
-    }, []);
+    }, [viewedUserId]);
 
     async function handleRefresh() {
         setIsRefreshing(true);
@@ -131,9 +134,9 @@ export default function DailyReportsScreen({ navigation }) {
     const [todayReport, ...historyReports] = reports;
 
     function handleRequestCheckIn() {
-        if (requestState === 'loading') return;
+        if (requestState === 'loading' || !viewedUserId) return;
         setRequestState('loading');
-        apiRequest(`/users/${user.userId}/checkins/request`, { method: 'POST' })
+        apiRequest(`/users/${viewedUserId}/checkins/request`, { method: 'POST' })
             .then(() => {
                 setRequestState('sent');
                 resetTimer.current = setTimeout(() => setRequestState('idle'), 4000);
@@ -182,7 +185,7 @@ export default function DailyReportsScreen({ navigation }) {
                     ]}
                     onPress={handleRequestCheckIn}
                     activeOpacity={0.75}
-                    disabled={requestState === 'loading'}
+                    disabled={requestState === 'loading' || !viewedUserId}
                 >
                     {requestState === 'loading' ? (
                         <ActivityIndicator color="#fff" />
@@ -203,6 +206,10 @@ export default function DailyReportsScreen({ navigation }) {
                 >
                     {isLoading ? (
                         <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
+                    ) : !viewedUserId ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>עדיין לא מקושר למבוגר</Text>
+                        </View>
                     ) : reports.length === 0 ? (
                         <View style={styles.emptyCard}>
                             <Text style={styles.emptyText}>אין דיווחים להצגה עדיין</Text>

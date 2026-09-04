@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Image,
     ImageBackground,
@@ -15,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ClassicButton from '../components/ClassicButton';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
+import { getViewedUserId } from '../../logic/utils/viewedUser';
 
 const FREQUENCY_OPTIONS = [
     { label: 'כל דקה (בדיקה)', value: 1 },
@@ -64,12 +66,14 @@ function ToggleRow({ label, value, onValueChange }) {
 
 export default function WaterReminderScreen({ navigation }) {
     const { user } = useContext(UserContext);
+    const viewedUserId = getViewedUserId(user);
     const [enabled, setEnabled] = useState(false);
     const [frequencyMinutes, setFrequencyMinutes] = useState(120);
     const [activeStart, setActiveStart] = useState(() => timeToDate('08:00'));
     const [activeEnd, setActiveEnd] = useState(() => timeToDate('22:00'));
     const [watchScheduled, setWatchScheduled] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const [isFrequencyModalVisible, setIsFrequencyModalVisible] = useState(false);
     const [pickerTarget, setPickerTarget] = useState(null); // 'start' | 'end' | null
@@ -82,17 +86,20 @@ export default function WaterReminderScreen({ navigation }) {
     const exceedsMax = dailyReminderCount > MAX_DAILY_REMINDERS;
 
     useEffect(() => {
+        if (!viewedUserId) { setIsLoading(false); return; }
+        setIsLoading(true);
         (async () => {
             try {
-                const data = await apiRequest(`/users/${user.userId}/water-reminders`);
+                const data = await apiRequest(`/users/${viewedUserId}/water-reminders`);
                 setEnabled(!!data.enabled);
                 setFrequencyMinutes(data.frequency_minutes ?? 120);
                 setActiveStart(timeToDate(data.active_start ?? '08:00'));
                 setActiveEnd(timeToDate(data.active_end ?? '22:00'));
                 setWatchScheduled(!!data.watch_scheduled);
             } catch {}
+            finally { setIsLoading(false); }
         })();
-    }, []);
+    }, [viewedUserId]);
 
     const openTimePicker = (target) => {
         setPendingTime(target === 'start' ? activeStart : activeEnd);
@@ -114,7 +121,7 @@ export default function WaterReminderScreen({ navigation }) {
         }
         setIsSaving(true);
         try {
-            await apiRequest(`/users/${user.userId}/water-reminders`, {
+            await apiRequest(`/users/${viewedUserId}/water-reminders`, {
                 method: 'PUT',
                 body: JSON.stringify({
                     enabled,
@@ -152,6 +159,13 @@ export default function WaterReminderScreen({ navigation }) {
 
                 <Text style={styles.title}>תזכורות לשתיית מים</Text>
 
+                {!viewedUserId ? (
+                    <View style={styles.form}>
+                        <Text style={styles.toggleLabel}>עדיין לא מקושר למבוגר</Text>
+                    </View>
+                ) : isLoading ? (
+                    <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
+                ) : (
                 <View style={styles.form}>
                     <ToggleRow
                         label="הפעל תזכורות לשתיית מים"
@@ -199,11 +213,12 @@ export default function WaterReminderScreen({ navigation }) {
                     <ClassicButton
                         buttonStyle={styles.saveButton}
                         onPress={save}
-                        disabled={isSaving || exceedsMax}
+                        disabled={isSaving || exceedsMax || !viewedUserId}
                     >
                         {isSaving ? 'שומר...' : 'שמור'}
                     </ClassicButton>
                 </View>
+                )}
             </SafeAreaView>
 
             <Modal

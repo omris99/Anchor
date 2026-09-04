@@ -86,6 +86,14 @@ add_route "water-reminders-dashboard" "PUT" "/users/{id}/water-reminders"
 add_route "emergency"             "POST" "/emergency"
 add_route "emergency-acknowledge" "POST" "/emergency/{id}/acknowledge"
 
+# --- Family linking (dashboard) ---
+add_route "family-request"        "POST"   "/users/{id}/family/request"
+add_route "family-requests-get"   "GET"    "/users/{id}/family/requests"
+add_route "family-approve"        "POST"   "/users/{id}/family/approve"
+add_route "family-request-reject" "DELETE" "/users/{id}/family/request/{requestId}"
+add_route "family-linked-elders"  "GET"    "/users/{id}/family/linked-elders"
+add_route "family-linked-members" "GET"    "/users/{id}/family/linked-members"
+
 # --- Mobile FCM token (dashboard) ---
 add_route "mobile-fcm-token" "POST" "/users/{id}/mobile-fcm-token"
 

@@ -28,6 +28,7 @@ export async function loginUser(email, password, rememberMe) {
         firstName: nameParts[0] || '',
         lastName: nameParts.slice(1).join(' ') || '',
         userType: payload['custom:user_type'] || '',
+        phone: payload.phone_number || '',
         idToken: data.id_token,
         accessToken: data.access_token,
         refreshToken: data.refresh_token,

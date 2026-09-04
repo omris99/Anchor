@@ -18,6 +18,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
+import { getViewedUserId } from '../../logic/utils/viewedUser';
 import { ANCHOR_LOGO_BASE64 } from '../assets/anchorLogoBase64';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -113,6 +114,7 @@ function buildHealthSummaryHtml({ ts, hrDisplay, stepsDisplay, historyRows }) {
 
 export default function HealthDataScreen({ navigation }) {
     const { user } = useContext(UserContext);
+    const viewedUserId = getViewedUserId(user);
     const [selectedMetric, setSelectedMetric] = useState('heartRate');
     const [latestMetrics, setLatestMetrics] = useState(null);
     const [loadingMetrics, setLoadingMetrics] = useState(true);
@@ -142,18 +144,20 @@ export default function HealthDataScreen({ navigation }) {
 
     useFocusEffect(
         useCallback(() => {
+            if (!viewedUserId) return;
+
             setLoadingMetrics(true);
-            apiRequest(`/users/${user.userId}/health-metrics/latest`)
+            apiRequest(`/users/${viewedUserId}/health-metrics/latest`)
                 .then(data => setLatestMetrics(data.latest))
                 .catch(() => {})
                 .finally(() => setLoadingMetrics(false));
 
             setLoadingHistory(true);
-            apiRequest(`/users/${user.userId}/health-metrics/history?days=30`)
+            apiRequest(`/users/${viewedUserId}/health-metrics/history?days=30`)
                 .then(data => setDailyHistory(aggregateHistoryByDay(data?.items || [])))
                 .catch(() => {})
                 .finally(() => setLoadingHistory(false));
-        }, [user.userId])
+        }, [viewedUserId])
     );
 
     const handleExportPdf = async () => {
@@ -213,6 +217,11 @@ export default function HealthDataScreen({ navigation }) {
                 </View>
                 <Text style={styles.title}>נתונים רפואיים</Text>
 
+                {!viewedUserId ? (
+                    <View style={styles.card}>
+                        <Text style={styles.noDataText}>עדיין לא מקושר למבוגר</Text>
+                    </View>
+                ) : (
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
@@ -322,6 +331,7 @@ export default function HealthDataScreen({ navigation }) {
                         )}
                     </TouchableOpacity>
                 </ScrollView>
+                )}
             </SafeAreaView>
         </ImageBackground>
     );
