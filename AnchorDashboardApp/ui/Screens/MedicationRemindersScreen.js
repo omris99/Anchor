@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     FlatList,
     Image,
@@ -18,6 +19,7 @@ import TextInputField from '../components/TextInputField';
 import DaySelector, { DAY_NAMES } from '../components/DaySelector';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
+import { getViewedUserId } from '../../logic/utils/viewedUser';
 
 function formatTime(date) {
     const hours = date.getHours().toString().padStart(2, '0');
@@ -46,6 +48,7 @@ function serverMedToLocal(med) {
 
 export default function MedicationRemindersScreen({ navigation }) {
     const { user } = useContext(UserContext);
+    const viewedUserId = getViewedUserId(user);
     const [medicationName, setMedicationName] = useState('');
     const [selectedTime, setSelectedTime] = useState(() => {
         const now = new Date();
@@ -54,20 +57,24 @@ export default function MedicationRemindersScreen({ navigation }) {
     });
     const [selectedDays, setSelectedDays] = useState([]);
     const [reminders, setReminders] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const [isPickerVisible, setIsPickerVisible] = useState(false);
     const [pendingTime, setPendingTime] = useState(selectedTime);
 
     const loadReminders = async () => {
+        if (!viewedUserId) return;
         try {
-            const data = await apiRequest(`/users/${user.userId}/medication-reminders`);
+            const data = await apiRequest(`/users/${viewedUserId}/medication-reminders`);
             setReminders((data.medications ?? []).map(serverMedToLocal));
         } catch {}
     };
 
     // Load existing reminders from the server when the screen opens.
-    useEffect(() => { loadReminders(); }, []);
+    useEffect(() => {
+        loadReminders().finally(() => setIsLoading(false));
+    }, [viewedUserId]);
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
@@ -102,7 +109,7 @@ export default function MedicationRemindersScreen({ navigation }) {
 
         try {
             // Save to server first; use the server-assigned id in local state.
-            const saved = await apiRequest(`/users/${user.userId}/medication-reminders`, {
+            const saved = await apiRequest(`/users/${viewedUserId}/medication-reminders`, {
                 method: 'POST',
                 body: JSON.stringify({
                     medication_name: medicationName.trim(),
@@ -120,7 +127,7 @@ export default function MedicationRemindersScreen({ navigation }) {
 
     const removeReminder = async (reminderId) => {
         try {
-            await apiRequest(`/users/${user.userId}/medication-reminders/${reminderId}`, {
+            await apiRequest(`/users/${viewedUserId}/medication-reminders/${reminderId}`, {
                 method: 'DELETE',
             });
             setReminders(prev => prev.filter(r => r.id !== reminderId));
@@ -167,6 +174,13 @@ export default function MedicationRemindersScreen({ navigation }) {
                 </View>
                 <Text style={styles.title}>תזכורות לתרופות</Text>
 
+                {!viewedUserId ? (
+                    <View style={styles.form}>
+                        <Text style={styles.label}>עדיין לא מקושר למבוגר</Text>
+                    </View>
+                ) : isLoading ? (
+                    <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
+                ) : (
                 <FlatList
                     data={reminders}
                     keyExtractor={item => item.id}
@@ -214,6 +228,7 @@ export default function MedicationRemindersScreen({ navigation }) {
                     keyboardShouldPersistTaps="handled"
                     automaticallyAdjustKeyboardInsets
                 />
+                )}
             </SafeAreaView>
 
             <Modal

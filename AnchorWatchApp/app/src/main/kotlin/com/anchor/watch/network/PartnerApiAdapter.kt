@@ -37,30 +37,29 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * PartnerApiAdapter — the single adaptation layer between the SOURCE watch app
- * (Claude prompt watchapp; lives at `com.anchor.watch.*`) and the TARGET partner
- * AWS Lambda + API Gateway backend.
+ * PartnerApiAdapter — the adaptation layer between this watch app's data-layer
+ * interfaces and the anchor-backend AWS Lambda + API Gateway REST API.
  *
- * SOURCE interfaces stay untouched:
+ * Interfaces implemented here:
  *   - [EmergencyApi]   (com.anchor.watch.services)
  *   - [MedicationApi]  (com.anchor.watch.data)
  *   - [CheckInApi]     (com.anchor.watch.data)
  *
  * Each [PartnerEmergencyApi], [PartnerMedicationApi], [PartnerCheckInApi] implements
- * the SOURCE contract by translating to/from the partner's REST shape:
+ * its interface by translating to/from the backend's REST shape:
  *
  *   - Auth header:        X-Watch-Key  (DataStore-backed [WatchKeyStore])
  *   - Base URL:           https://u7cxnohim6.execute-api.us-east-1.amazonaws.com
  *                         (from anchor-backend/api-config.json per CLAUDE.md)
- *   - Error envelope:     partner returns `{"error":"…"}` on non-2xx; we map any
- *                         non-2xx response to `false`/`null` to fit the SOURCE
+ *   - Error envelope:     backend returns `{"error":"…"}` on non-2xx; we map any
+ *                         non-2xx response to `false`/`null` to fit the app's
  *                         offline-first runCatching{}.getOrDefault(false) pattern.
  *
  * Pairing flow (DECISIONS.md §2): the watch initially has no X-Watch-Key. After
  * the dashboard scans the QR and calls /users/{id}/watch/pair, the backend
  * returns the watch's permanent API key + user_id. The watch persists both via
  * [WatchKeyStore.savePairingResult]. Until that happens, all API calls fail with
- * 401/403; SOURCE's offline queue + WorkManager handle the retry.
+ * 401/403; the offline queue + WorkManager handle the retry.
  */
 object PartnerApi {
     private const val BASE_URL = "https://u7cxnohim6.execute-api.us-east-1.amazonaws.com/"
@@ -96,27 +95,27 @@ object PartnerApi {
         return built
     }
 
-    /** Adapter implementing SOURCE's [EmergencyApi]. */
+    /** Adapter implementing [EmergencyApi]. */
     fun emergency(context: Context): EmergencyApi =
         PartnerEmergencyApi(retrofit(context).create(PartnerEmergencyService::class.java))
 
-    /** Adapter implementing SOURCE's [MedicationApi]. */
+    /** Adapter implementing [MedicationApi]. */
     fun medication(context: Context): MedicationApi =
         PartnerMedicationApi(retrofit(context).create(PartnerMedicationService::class.java))
 
-    /** Adapter implementing SOURCE's [WaterApi]. */
+    /** Adapter implementing [WaterApi]. */
     fun water(context: Context): WaterApi =
         PartnerWaterApi(retrofit(context).create(PartnerWaterService::class.java))
 
-    /** Adapter implementing SOURCE's [CheckInApi]. */
+    /** Adapter implementing [CheckInApi]. */
     fun checkIn(context: Context): CheckInApi =
         PartnerCheckInApi(retrofit(context).create(PartnerCheckInService::class.java))
 
-    /** Pairing helper (no SOURCE interface — invoked by a future PairingScreen). */
+    /** Pairing helper, used by [WatchPairingScreen]. */
     fun pairing(context: Context): PartnerPairingApi =
         PartnerPairingApi(retrofit(context).create(PartnerPairingService::class.java))
 
-    /** Adapter implementing SOURCE's [HealthMetricsApi]. */
+    /** Adapter implementing [HealthMetricsApi]. */
     fun healthMetrics(context: Context): HealthMetricsApi =
         HealthMetricsApi(retrofit(context).create(PartnerHealthMetricsService::class.java))
 
@@ -481,7 +480,7 @@ internal class PartnerCheckInApi(
 }
 
 /**
- * Pairing helper. Not a SOURCE interface — wired in by future PairingScreen.
+ * Pairing helper used by [WatchPairingScreen].
  * Returns the temporary pairing token the watch displays as a QR for the elder
  * to scan in the dashboard, completing pairing via /users/{id}/watch/pair.
  */

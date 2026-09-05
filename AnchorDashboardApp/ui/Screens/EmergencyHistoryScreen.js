@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
+import { getViewedUserId } from '../../logic/utils/viewedUser';
 
 function formatAlertForScreen(alert) {
     const location = (alert.location?.lat != null && alert.location?.lng != null)
@@ -29,17 +30,18 @@ function formatAlertForScreen(alert) {
 
 export default function EmergencyHistoryScreen({ navigation }) {
     const { user } = useContext(UserContext);
+    const viewedUserId = getViewedUserId(user);
     const [alerts, setAlerts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (!user?.userId) { setIsLoading(false); return; }
+        if (!viewedUserId) { setIsLoading(false); return; }
         setIsLoading(true);
-        apiRequest(`/users/${user.userId}/emergency-alerts`)
+        apiRequest(`/users/${viewedUserId}/emergency-alerts`)
             .then(data => setAlerts(data.alerts || []))
             .catch(() => {})
             .finally(() => setIsLoading(false));
-    }, [user?.userId]);
+    }, [viewedUserId]);
 
     const allEvents = alerts.map(a => ({ ...formatAlertForScreen(a), _key: a.id }));
 
@@ -68,6 +70,10 @@ export default function EmergencyHistoryScreen({ navigation }) {
                 >
                     {isLoading ? (
                         <ActivityIndicator size="large" color="#48AEBE" style={{ marginTop: 60 }} />
+                    ) : !viewedUserId ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>עדיין לא מקושר למבוגר</Text>
+                        </View>
                     ) : allEvents.length === 0 ? (
                         <View style={styles.emptyCard}>
                             <Text style={styles.emptyText}>אין אירועי חירום להצגה</Text>

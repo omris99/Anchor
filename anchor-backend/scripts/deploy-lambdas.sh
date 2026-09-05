@@ -5,6 +5,7 @@ PROFILE="anchor"
 REGION="us-east-1"
 ACCOUNT_ID="976586160011"
 COGNITO_CLIENT_ID="1smq0heh9hmht2tti3rnb4usvi"
+COGNITO_USER_POOL_ID="us-east-1_KXDRK5VnC"
 ROLE_NAME="LabRole"
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 
@@ -97,6 +98,30 @@ deploy_lambda "water-reminders-dashboard"    "water-reminders-dashboard"
 deploy_lambda "emergency"             "emergency"
 deploy_lambda "emergency-acknowledge" "emergency-acknowledge"
 deploy_lambda "emergency-alerts-get"  "emergency-alerts-get"
+
+# Family linking
+deploy_lambda "family-request"        "family-request"
+deploy_lambda "family-requests-get"   "family-requests-get"
+deploy_lambda "family-approve"        "family-approve"
+deploy_lambda "family-request-reject" "family-request-reject"
+deploy_lambda "family-linked-elders"  "family-linked-elders"
+deploy_lambda "family-linked-members" "family-linked-members"
+
+# family-request needs the Cognito User Pool ID (ListUsers, to resolve a
+# phone number to an elder's sub) — deploy_lambda's create-function step only
+# sets COGNITO_CLIENT_ID, so set this separately every run (idempotent).
+# Wait for the code update above to finish processing first, or this
+# configuration update can hit ResourceConflictException.
+aws lambda wait function-updated \
+  --function-name anchor-family-request \
+  --region "$REGION" \
+  --profile "$PROFILE"
+aws lambda update-function-configuration \
+  --function-name anchor-family-request \
+  --environment "Variables={COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}}" \
+  --region "$REGION" \
+  --profile "$PROFILE" > /dev/null
+echo "  ✓ anchor-family-request env configured (COGNITO_USER_POOL_ID)"
 
 # Mobile FCM token (dashboard)
 deploy_lambda "mobile-fcm-token" "mobile-fcm-token"

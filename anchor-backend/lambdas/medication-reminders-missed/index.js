@@ -60,8 +60,6 @@ exports.handler = async (event) => {
       },
     }));
 
-    // TODO Phase 5+: FCM fanout to confirmed family via AWS SNS.
-
     return reply(201, {
       medicationId,
       alertId,

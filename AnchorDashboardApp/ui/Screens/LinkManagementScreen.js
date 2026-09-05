@@ -1,5 +1,6 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     FlatList,
     Image,
@@ -10,19 +11,33 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TextInputField from '../components/TextInputField';
 import ClassicButton from '../components/ClassicButton';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
 
-const MOCK_LINK_REQUESTS = [
-    { id: '1', fullName: 'דניאל הרשקו', phone: '050-1234567' },
-];
-
 function ElderlyView({ navigation }) {
     const { user, setUser } = useContext(UserContext);
-    const [linkRequests, setLinkRequests] = useState(MOCK_LINK_REQUESTS);
+    const [linkRequests, setLinkRequests] = useState([]);
+    const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+    const [linkedMembers, setLinkedMembers] = useState([]);
+    const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+
+    useFocusEffect(useCallback(() => {
+        apiRequest(`/users/${user.userId}/family/requests`)
+            .then(data => setLinkRequests(data.requests ?? []))
+            .catch(() => {}) // keep whatever was already loaded on error
+            .finally(() => setIsLoadingRequests(false));
+    }, [user.userId]));
+
+    useFocusEffect(useCallback(() => {
+        apiRequest(`/users/${user.userId}/family/linked-members`)
+            .then(data => setLinkedMembers(data.members ?? []))
+            .catch(() => {})
+            .finally(() => setIsLoadingMembers(false));
+    }, [user.userId]));
 
     useEffect(() => {
         apiRequest(`/users/${user.userId}/profile`)
@@ -68,22 +83,55 @@ function ElderlyView({ navigation }) {
         );
     };
 
-    const approveRequest = (requestId) => {
-        // TODO: POST /users/{userId}/family/approve — אישור בקשת קישור
-        setLinkRequests(prev => prev.filter(request => request.id !== requestId));
-        Alert.alert('אושר', 'הקישור אושר בהצלחה!');
+    const approveRequest = async (requestId) => {
+        try {
+            await apiRequest(`/users/${user.userId}/family/approve`, {
+                method: 'POST',
+                body: JSON.stringify({ request_id: requestId }),
+            });
+            setLinkRequests(prev => prev.filter(request => request.id !== requestId));
+            Alert.alert('אושר', 'הקישור אושר בהצלחה!');
+        } catch (err) {
+            Alert.alert('שגיאה', err.message || 'לא ניתן לאשר את הבקשה. נסה שוב.');
+        }
     };
 
-    const rejectRequest = (requestId) => {
-        // TODO: DELETE /users/{userId}/family/request/{requestId} — דחיית בקשת קישור
-        setLinkRequests(prev => prev.filter(request => request.id !== requestId));
+    const rejectRequest = async (requestId) => {
+        try {
+            await apiRequest(`/users/${user.userId}/family/request/${requestId}`, { method: 'DELETE' });
+            setLinkRequests(prev => prev.filter(request => request.id !== requestId));
+        } catch (err) {
+            Alert.alert('שגיאה', err.message || 'לא ניתן לדחות את הבקשה. נסה שוב.');
+        }
+    };
+
+    const unlinkMember = (memberId) => {
+        Alert.alert(
+            'ביטול קישור',
+            'האם אתה בטוח שברצונך לבטל את הקישור עם בן המשפחה הזה?',
+            [
+                { text: 'ביטול', style: 'cancel' },
+                {
+                    text: 'בטל קישור',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await apiRequest(`/users/${user.userId}/family/request/${memberId}`, { method: 'DELETE' });
+                            setLinkedMembers(prev => prev.filter(member => member.id !== memberId));
+                        } catch (err) {
+                            Alert.alert('שגיאה', err.message || 'לא ניתן לבטל את הקישור. נסה שוב.');
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const renderLinkRequest = ({ item }) => (
         <View style={styles.requestCard}>
             <View style={styles.requestInfo}>
-                <Text style={styles.requestName}>{item.fullName}</Text>
-                <Text style={styles.requestPhone}>{item.phone}</Text>
+                <Text style={styles.requestName}>{item.member_name}</Text>
+                <Text style={styles.requestPhone}>{item.member_phone}</Text>
             </View>
             <View style={styles.requestActions}>
                 <TouchableOpacity
@@ -104,6 +152,22 @@ function ElderlyView({ navigation }) {
         </View>
     );
 
+    const renderLinkedMember = ({ item }) => (
+        <View style={styles.requestCard}>
+            <View style={styles.requestInfo}>
+                <Text style={styles.requestName}>{item.member_name}</Text>
+                <Text style={styles.requestPhone}>{item.member_phone}</Text>
+            </View>
+            <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={() => unlinkMember(item.id)}
+                activeOpacity={0.8}
+            >
+                <Text style={styles.rejectButtonText}>בטל קישור</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
     return (
         <>
             <View style={styles.section}>
@@ -112,7 +176,7 @@ function ElderlyView({ navigation }) {
                     <View style={styles.watchStatusRow}>
                         <Text style={styles.watchStatusDot}>●</Text>
                         <Text style={styles.watchStatusText}>
-                            שעון מקושר — {user.watchName || user.watchId.slice(0, 8)}
+                            שעון מקושר - {user.watchName || user.watchId.slice(0, 8)}
                         </Text>
                     </View>
                 ) : (
@@ -129,14 +193,31 @@ function ElderlyView({ navigation }) {
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>בקשות קישור</Text>
-                {linkRequests.length === 0 ? (
+                {isLoadingRequests ? (
+                    <ActivityIndicator color="#48AEBE" />
+                ) : linkRequests.length === 0 ? (
                     <Text style={styles.emptyText}>אין בקשות קישור ממתינות</Text>
                 ) : (
-                    // TODO: GET /users/{userId}/family/requests — טעינת בקשות קישור ממתינות
                     <FlatList
                         data={linkRequests}
                         keyExtractor={item => item.id}
                         renderItem={renderLinkRequest}
+                        scrollEnabled={false}
+                    />
+                )}
+            </View>
+
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>בני משפחה מקושרים</Text>
+                {isLoadingMembers ? (
+                    <ActivityIndicator color="#48AEBE" />
+                ) : linkedMembers.length === 0 ? (
+                    <Text style={styles.emptyText}>אין בני משפחה מקושרים</Text>
+                ) : (
+                    <FlatList
+                        data={linkedMembers}
+                        keyExtractor={item => item.id}
+                        renderItem={renderLinkedMember}
                         scrollEnabled={false}
                     />
                 )}
@@ -146,21 +227,47 @@ function ElderlyView({ navigation }) {
 }
 
 function FamilyMemberView() {
+    const { user } = useContext(UserContext);
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [isSending, setIsSending] = useState(false);
 
-    const sendLinkRequest = () => {
+    const sendLinkRequest = async () => {
         if (!phoneNumber.trim()) {
             Alert.alert('שגיאה', 'יש להזין מספר טלפון');
             return;
         }
-        // TODO: POST /users/{userId}/family/request — שליחת בקשת קישור למבוגר לפי טלפון
-        Alert.alert('בקשה נשלחה', `בקשת קישור נשלחה למספר ${phoneNumber.trim()}`);
-        setPhoneNumber('');
+        const normalizedPhone = phoneNumber.trim().startsWith('+')
+            ? phoneNumber.trim()
+            : '+972' + phoneNumber.trim().replace(/^0/, '');
+
+        setIsSending(true);
+        try {
+            await apiRequest(`/users/${user.userId}/family/request`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    elderly_phone: normalizedPhone,
+                    member_name: `${user.firstName} ${user.lastName}`.trim(),
+                    member_phone: user.phone,
+                }),
+            });
+            Alert.alert('בקשה נשלחה', `בקשת קישור נשלחה למספר ${phoneNumber.trim()}`);
+            setPhoneNumber('');
+        } catch (err) {
+            Alert.alert('שגיאה', err.message || 'לא ניתן לשלוח את הבקשה. נסה שוב.');
+        } finally {
+            setIsSending(false);
+        }
     };
 
     return (
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>קישור עם מבוגר</Text>
+            {user?.linkedElderName && (
+                <View style={styles.watchStatusRow}>
+                    <Text style={styles.watchStatusDot}>●</Text>
+                    <Text style={styles.watchStatusText}>מקושר למבוגר - {user.linkedElderName}</Text>
+                </View>
+            )}
             <Text style={styles.sectionDescription}>הזן את מספר הטלפון של המבוגר לשליחת בקשת קישור</Text>
             <TextInputField
                 placeholder="מספר טלפון"
@@ -171,8 +278,9 @@ function FamilyMemberView() {
             <ClassicButton
                 buttonStyle={styles.requestButton}
                 onPress={sendLinkRequest}
+                disabled={isSending}
             >
-                בקש לקשר
+                {isSending ? <ActivityIndicator color="#fff" /> : 'בקש לקשר'}
             </ClassicButton>
         </View>
     );
@@ -277,6 +385,11 @@ const styles = StyleSheet.create({
         color: '#666',
         textAlign: 'right',
         marginBottom: 14,
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#888',
+        textAlign: 'right',
     },
     watchStatusRow: {
         flexDirection: 'row-reverse',

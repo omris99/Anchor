@@ -95,7 +95,9 @@ async function collectMobileTokens(elderId) {
       TableName: FAMILY_MEMBERS_TABLE,
       IndexName: "elderly_user_id-index",
       KeyConditionExpression: "elderly_user_id = :eid",
-      ExpressionAttributeValues: { ":eid": elderId },
+      FilterExpression: "#s = :approved",
+      ExpressionAttributeNames: { "#s": "status" },
+      ExpressionAttributeValues: { ":eid": elderId, ":approved": "approved" },
       ProjectionExpression: "member_user_id",
     }));
 

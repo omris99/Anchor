@@ -34,7 +34,6 @@ class MedicationSyncWorker(
     override suspend fun doWork(): Result {
         val medOk = drain(
             store = MedicationLocalStore(applicationContext),
-            // PartnerApiAdapter: was UnreachableMedicationApi (SOURCE default stub).
             api = PartnerApi.medication(applicationContext),
         )
         val waterOk = drainWater(

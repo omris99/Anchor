@@ -1,18 +1,8 @@
 /*
- * Partner MainActivity — KEPT per transplant Rule 2, wired to SOURCE Navigation.
- *
- * What changed vs. partner's pre-transplant scaffold (4 lines of intent):
- *   - import com.anchor.anchorwatchapp.R          → import com.anchor.watch.R
- *     (R class moved to namespace = "com.anchor.watch" so SOURCE files'
- *      `import com.anchor.watch.R` resolve unchanged)
- *   - The placeholder WearApp() scaffold (Button A/B/C with TODO callbacks) is
- *     replaced by SOURCE's MainWatchScreen ↔ SosScreen navigation pair, the same
- *     model SOURCE's own MainActivity uses (see SOURCE com.anchor.watch.MainActivity).
- *   - FallDetectionService is started on launch (SOURCE behaviour — fall
- *     monitoring runs as long as the launcher activity has been opened once).
- *   - AmbientModeSupport from SOURCE is omitted here (depends on
- *     androidx.wear:wear FragmentActivity); partner's ComponentActivity host stays
- *     intact. Ambient mode can be added back later via androidx.wear.ambient API.
+ * Launcher Activity — navigates between MainWatchScreen and SosScreen.
+ * Starts FallDetectionService on launch so fall monitoring runs as long as
+ * this activity has been opened once. Ambient mode is not supported here
+ * (would require androidx.wear:wear FragmentActivity instead of ComponentActivity).
  */
 
 package com.anchor.anchorwatchapp.presentation

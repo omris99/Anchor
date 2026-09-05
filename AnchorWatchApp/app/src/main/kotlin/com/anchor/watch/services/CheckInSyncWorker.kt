@@ -22,7 +22,6 @@ class CheckInSyncWorker(
     override suspend fun doWork(): Result {
         val ok = drain(
             store = CheckInLocalStore(applicationContext),
-            // PartnerApiAdapter: was UnreachableCheckInApi (SOURCE default stub).
             api = PartnerApi.checkIn(applicationContext),
         )
         return if (ok) Result.success() else Result.retry()

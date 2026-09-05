@@ -157,7 +157,6 @@ class EmergencyService : Service() {
         createChannel()
         orchestrator = EmergencyOrchestrator(
             store = EmergencyLocalStore(applicationContext),
-            // PartnerApiAdapter: was UnreachableEmergencyApi (SOURCE default stub).
             api = PartnerApi.emergency(applicationContext),
             onQueueForRetry = { EmergencySyncWorker.enqueue(applicationContext) },
             locationProvider = {

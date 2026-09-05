@@ -5,12 +5,14 @@ import ClassicButton from '../components/ClassicButton';
 import WellnessStatusCard from '../components/WellnessStatusCard';
 import { UserContext } from '../../logic/contexts/UserContext';
 import { apiRequest } from '../../logic/services/api/ApiClient';
+import { getViewedUserId } from '../../logic/utils/viewedUser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen({ navigation }) {
-    const { user, pushToken } = useContext(UserContext);
+    const { user, setUser, pushToken } = useContext(UserContext);
     const greet = user ? `שלום, ${user.firstName}` : 'שלום';
     const [connectivity, setConnectivity] = useState(null);
+    const isFamilyMember = user?.userType === 'family_member';
 
     useFocusEffect(useCallback(() => {
         if (!user?.userId) return;
@@ -18,6 +20,20 @@ export default function HomeScreen({ navigation }) {
             .then(data => setConnectivity(data))
             .catch(() => setConnectivity(null));
     }, [user?.userId]));
+
+    useFocusEffect(useCallback(() => {
+        if (!isFamilyMember || !user?.userId) return;
+        apiRequest(`/users/${user.userId}/family/linked-elders`)
+            .then(data => {
+                const elder = data.elders?.[0];
+                setUser(prev => ({
+                    ...prev,
+                    linkedElderId: elder?.elderly_user_id || null,
+                    linkedElderName: elder?.elder_name || null,
+                }));
+            })
+            .catch(() => {});
+    }, [isFamilyMember, user?.userId]));
 
     const allConnected = !!(
         pushToken &&
@@ -40,8 +56,13 @@ export default function HomeScreen({ navigation }) {
             />
 
             <Text style={styles.greeting}>{greet}</Text>
+            {isFamilyMember && (
+                <Text style={styles.linkedElderText}>
+                    {user?.linkedElderName ? `מחובר למבוגר: ${user.linkedElderName}` : 'עדיין לא מקושר למבוגר'}
+                </Text>
+            )}
 
-            <WellnessStatusCard userId={user?.userId} />
+            <WellnessStatusCard userId={getViewedUserId(user)} />
 
             <View style={styles.buttons}>
                 <ClassicButton
@@ -115,6 +136,12 @@ const styles = StyleSheet.create({
         color: '#444',
         textAlign: 'right',
         marginBottom: 10,
+    },
+    linkedElderText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'right',
+        marginBottom: 14,
     },
     buttons: {
         flex: 1,

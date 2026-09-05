@@ -20,7 +20,6 @@ class EmergencySyncWorker(
     override suspend fun doWork(): Result {
         val ok = drain(
             store = EmergencyLocalStore(applicationContext),
-            // PartnerApiAdapter: was UnreachableEmergencyApi (SOURCE default stub).
             api = PartnerApi.emergency(applicationContext),
         )
         return if (ok) Result.success() else Result.retry()

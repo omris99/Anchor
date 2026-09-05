@@ -29,9 +29,8 @@ exports.handler = async (event) => {
       body: JSON.stringify({ message: "Email verified. You can now log in." }),
     };
   } catch (err) {
-    const statusCode = err.name === "CodeMismatchException" ? 400 : 400;
     return {
-      statusCode,
+      statusCode: 400,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ error: err.message }),
     };

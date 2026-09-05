@@ -26,7 +26,6 @@
       [
         "expo-notifications",
         {
-          "icon": "./ui/assets/notification-icon.png",
           "color": "#ffffff"
         }
       ],
@@ -39,7 +38,7 @@
       ]
     ],
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./ui/assets/favicon.png"
     },
     "extra": {
       "apiBaseUrl": "https://u7cxnohim6.execute-api.us-east-1.amazonaws.com",

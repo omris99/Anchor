@@ -80,7 +80,6 @@ class MedicationAlarmService : Service() {
         val store = MedicationLocalStore(applicationContext)
         repository = MedicationRepository(
             store = store,
-            // PartnerApiAdapter: was UnreachableMedicationApi (SOURCE default stub).
             api = PartnerApi.medication(applicationContext),
             onQueueForRetry = { MedicationSyncWorker.enqueue(applicationContext) },
         )
