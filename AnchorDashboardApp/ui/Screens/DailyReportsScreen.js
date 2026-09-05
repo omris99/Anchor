@@ -194,7 +194,7 @@ export default function DailyReportsScreen({ navigation }) {
                             {requestState === 'sent'
                                 ? '✓ הבקשה נשלחה לשעון'
                                 : requestState === 'error'
-                                ? 'שגיאה — נסה שנית'
+                                ? 'שגיאה - נסה שנית'
                                 : 'בקש check-in עכשיו'}
                         </Text>
                     )}

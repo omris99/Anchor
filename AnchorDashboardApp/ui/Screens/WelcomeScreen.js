@@ -73,7 +73,9 @@ export default function WelcomeScreen({ navigation }) {
         }
     };
 
-    const handleForgotPasswordPress = () => { Alert.alert("Password forgotten"); };
+    const handleForgotPasswordPress = () => {
+        Alert.alert("שכחת סיסמה", "התכונה תהיה זמינה בקרוב. לאיפוס סיסמה כרגע, יש לפנות לתמיכה.");
+    };
 
     return (
         <ImageBackground

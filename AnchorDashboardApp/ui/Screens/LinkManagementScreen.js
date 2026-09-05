@@ -176,7 +176,7 @@ function ElderlyView({ navigation }) {
                     <View style={styles.watchStatusRow}>
                         <Text style={styles.watchStatusDot}>●</Text>
                         <Text style={styles.watchStatusText}>
-                            שעון מקושר — {user.watchName || user.watchId.slice(0, 8)}
+                            שעון מקושר - {user.watchName || user.watchId.slice(0, 8)}
                         </Text>
                     </View>
                 ) : (
@@ -265,7 +265,7 @@ function FamilyMemberView() {
             {user?.linkedElderName && (
                 <View style={styles.watchStatusRow}>
                     <Text style={styles.watchStatusDot}>●</Text>
-                    <Text style={styles.watchStatusText}>מקושר למבוגר — {user.linkedElderName}</Text>
+                    <Text style={styles.watchStatusText}>מקושר למבוגר - {user.linkedElderName}</Text>
                 </View>
             )}
             <Text style={styles.sectionDescription}>הזן את מספר הטלפון של המבוגר לשליחת בקשת קישור</Text>

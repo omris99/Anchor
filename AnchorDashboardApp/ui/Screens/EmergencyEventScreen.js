@@ -113,7 +113,6 @@ export default function EmergencyEventScreen({ route, navigation }) {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Alert Section - Updated Style */}
                     <View style={styles.alertContainer}>
                         <View style={styles.iconCircle}>
                             <Text style={styles.alertIcon}>⚠️</Text>
@@ -217,7 +216,6 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 40,
     },
-    // New Clean Alert Style
     alertContainer: {
         backgroundColor: '#FFF5F5',
         borderRadius: 24,
@@ -225,7 +223,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         alignItems: 'center',
         marginBottom: 20,
-        // Shadow instead of Border
         shadowColor: '#CC2222',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.1,

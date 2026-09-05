@@ -72,7 +72,6 @@ export default function RegisterScreen({navigation}) {
                 return;
             }
 
-            // Alert.alert("הצלחה", "ההרשמה הושלמה בהצלחה");
             navigation.navigate("welcome");
         } catch (error) {
             console.error(error);
@@ -92,7 +91,7 @@ export default function RegisterScreen({navigation}) {
                 return;
             }
 
-            // Alert.alert("שגיאה", "אירעה שגיאה במהלך ההרשמה. אנא נסה שוב מאוחר יותר.");
+            Alert.alert("שגיאה", "אירעה שגיאה במהלך ההרשמה. אנא נסה שוב מאוחר יותר.");
         } finally {
             setLoading(false);
         }

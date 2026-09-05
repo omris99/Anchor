@@ -197,7 +197,7 @@ export default function WaterReminderScreen({ navigation }) {
 
                             <Text style={[styles.dailyCountText, exceedsMax && styles.dailyCountTextError]}>
                                 {exceedsMax
-                                    ? `${dailyReminderCount} תזכורות ביום — יותר מהמקסימום (${MAX_DAILY_REMINDERS}). צמצם את החלון או הגדל את התדירות.`
+                                    ? `${dailyReminderCount} תזכורות ביום - יותר מהמקסימום (${MAX_DAILY_REMINDERS}). צמצם את החלון או הגדל את התדירות.`
                                     : `ייווצרו ${dailyReminderCount} תזכורות ביום`}
                             </Text>
 

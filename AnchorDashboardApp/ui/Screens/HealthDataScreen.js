@@ -254,7 +254,7 @@ export default function HealthDataScreen({ navigation }) {
 
                         {/* Graph */}
                         <Text style={styles.graphTitle}>
-                            גרף מסכם — חודש אחרון ({metricData.unit})
+                            גרף מסכם - חודש אחרון ({metricData.unit})
                         </Text>
                         {loadingHistory ? (
                             <ActivityIndicator color="#48AEBE" style={{ paddingVertical: 16 }} />
@@ -307,10 +307,10 @@ export default function HealthDataScreen({ navigation }) {
                             {abnormalMetrics.map((item, index) => (
                                 <View key={index} style={styles.abnormalRow}>
                                     <Text style={styles.abnormalRange}>
-                                        טווח ממוצע נורמלי — {item.normalRange}
+                                        טווח ממוצע נורמלי - {item.normalRange}
                                     </Text>
                                     <Text style={styles.abnormalMetric}>
-                                        {item.name} — ערך נוכחי: {item.currentValue}
+                                        {item.name} - ערך נוכחי: {item.currentValue}
                                     </Text>
                                 </View>
                             ))}

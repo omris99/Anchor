@@ -60,8 +60,10 @@ exports.handler = async (event) => {
       },
     }));
 
-    // Await the push so Lambda doesn't terminate before the HTTP request completes.
-    await sendEmergencyPush(userId, alertId, normalizedType, ts, location);
+    // Await the push (in its own try/catch) so Lambda doesn't terminate before the
+    // HTTP request completes, and so a push failure doesn't turn an already-saved
+    // alert into a 500 response to the watch.
+    try { await sendEmergencyPush(userId, alertId, normalizedType, ts, location); } catch {}
 
     return reply(200, { alertId, status: "pending" });
   } catch (err) {
